@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Football 2026 Code",
+    "slug": "football2026code",
+    "version": "1.0.0",
+    "sdkVersion": "54.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#07111F"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.football2026code.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#07111F"
+      },
+      "package": "com.football2026code.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-font"
+    ]
+  }
+}
