@@ -270,11 +270,16 @@ export function WorldCupBanner({ leagueName, onViewFixtures }: BannerProps) {
 
 // ─── NewsFeedCard ─────────────────────────────────────────────────────────────
 
-export function NewsFeedCard({ article, featured }: { article: NewsArticle; featured?: boolean }) {
+export function NewsFeedCard({ article, featured, onPress }: { article: NewsArticle; featured?: boolean; onPress?: () => void }) {
+  const [imgError, setImgError] = React.useState(false);
   return (
-    <TouchableOpacity style={[s.newsCard, featured && s.newsCardFeatured]} activeOpacity={0.8}>
+    <TouchableOpacity style={[s.newsCard, featured && s.newsCardFeatured]} activeOpacity={0.8} onPress={onPress}>
       <View style={[s.newsImage, featured ? { height: 160 } : { height: 90 }]}>
-        <Text style={{ fontSize: featured ? 48 : 32 }}>📰</Text>
+        {article.image && !imgError ? (
+          <Image source={{ uri: article.image }} style={{ width: '100%', height: '100%' }} resizeMode="cover" onError={() => setImgError(true)} />
+        ) : (
+          <Text style={{ fontSize: featured ? 48 : 32 }}>📰</Text>
+        )}
       </View>
       <View style={s.newsBody}>
         <Text style={[s.newsTitle, featured && { fontSize: 16 }]} numberOfLines={2}>{article.title}</Text>
@@ -506,7 +511,7 @@ const s = StyleSheet.create({
   newsCardFeatured: {
     borderColor: C.accent + '40',
   },
-  newsImage: { backgroundColor: C.cardAlt, alignItems: 'center', justifyContent: 'center' },
+  newsImage: { backgroundColor: C.cardAlt, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   newsBody: { padding: 14 },
   newsTitle: { color: C.textPrimary, fontSize: 13, fontWeight: '600', marginBottom: 6 },
   newsMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },

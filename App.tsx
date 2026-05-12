@@ -19,6 +19,7 @@ import MatchDetailsScreen from './src/screens/MatchDetailsScreen';
 import ResultsScreen from './src/screens/ResultsScreen';
 import MoreScreen from './src/screens/MoreScreen';
 import NewsScreen from './src/screens/NewsScreen';
+import NewsArticleScreen from './src/screens/NewsArticleScreen';
 
 const queryClient = new QueryClient();
 const Tab = createBottomTabNavigator();
@@ -77,6 +78,8 @@ const buildNavigate = (navigation: any) => (screen: Screen | string, data?: any)
       return navigation.navigate('Favourites');
     case 'news':
       return navigation.navigate('News');
+    case 'news-article':
+      return navigation.navigate('NewsArticle', { article: data });
     case 'results':
       return navigation.navigate('Results');
     default:
@@ -122,6 +125,11 @@ function HomeStack({ favourites, onToggleFavourite, selectedLeagueId, allMatches
       </Stack.Screen>
       <Stack.Screen name="News">
         {({ navigation }) => <NewsScreen navigation={navigation} />}
+      </Stack.Screen>
+      <Stack.Screen name="NewsArticle">
+        {({ navigation, route }: { navigation: any; route: { params?: any } }) => (
+          <NewsArticleScreen navigation={navigation} route={route} />
+        )}
       </Stack.Screen>
     </Stack.Navigator>
   );

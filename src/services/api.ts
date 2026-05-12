@@ -258,15 +258,22 @@ async function ensureTeamFlagCache(leagueId: string): Promise<Map<string, string
   return teamFlagCache;
 }
 
+function findLeague(leagueName: string): League | undefined {
+  const lower = leagueName.toLowerCase();
+  return FEATURED_LEAGUES.find(l =>
+    lower.includes(l.name.toLowerCase()) || l.name.toLowerCase().includes(lower)
+  );
+}
+
 function enrichMatchFlags(matches: Match[], countryMap: Map<string, string>): Match[] {
   return matches.map(m => ({
     ...m,
     homeBadge: countryMap.get(m.homeTeam.toLowerCase())
       ?? countryMap.get(m.homeTeamId ?? '')
-      ?? countryToFlag(FEATURED_LEAGUES.find(l => l.name === m.league)?.country ?? ''),
+      ?? countryToFlag(findLeague(m.league)?.country ?? ''),
     awayBadge: countryMap.get(m.awayTeam.toLowerCase())
       ?? countryMap.get(m.awayTeamId ?? '')
-      ?? countryToFlag(FEATURED_LEAGUES.find(l => l.name === m.league)?.country ?? ''),
+      ?? countryToFlag(findLeague(m.league)?.country ?? ''),
   }));
 }
 
@@ -290,8 +297,10 @@ export async function fetchLiveEvents(leagueId?: string): Promise<Match[]> {
     if (leagueId) {
       const leagueNum = parseInt(leagueId, 10);
       events = events.filter(e => e.league_id === leagueNum);
+      await ensureTeamFlagCache(leagueId);
     }
-    return Promise.all(events.map(e => toMatch(e)));
+    const matches = await Promise.all(events.map(e => toMatch(e)));
+    return enrichMatchFlags(matches, teamFlagCache ?? new Map());
   } catch {
     return [];
   }

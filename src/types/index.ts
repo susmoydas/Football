@@ -135,4 +135,4 @@ export interface NewsArticle {
   content?: string;
 }
 
-export type Screen = 'splash' | 'home' | 'fixtures' | 'teams' | 'standings' | 'more' | 'match-details' | 'favourites' | 'news' | 'results';
+export type Screen = 'splash' | 'home' | 'fixtures' | 'teams' | 'standings' | 'more' | 'match-details' | 'favourites' | 'news' | 'news-article' | 'results';
