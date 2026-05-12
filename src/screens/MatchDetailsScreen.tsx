@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { HugeiconsIcon } from '@hugeicons/react-native';
+import { StarIcon } from '@hugeicons/core-free-icons';
 import { C, Match, Screen } from '../types';
 import { fetchEvent } from '../services/api';
 import { TeamBadge, StatBar, LoadingSpinner, Header } from '../components';
@@ -49,7 +51,7 @@ export default function MatchDetailsScreen({ onNavigate, matchData, favourites, 
         showBack={true}
         onBackPress={() => navigation?.goBack()}
         rightAction={{
-          icon: isFav ? '⭐' : '☆',
+          icon: <HugeiconsIcon icon={StarIcon} size={16} color={isFav ? '#FFD700' : C.textSecondary} />,
           onPress: () => onToggleFavourite(match.id),
         }}
       />

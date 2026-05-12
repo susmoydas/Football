@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, Image, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { HugeiconsIcon } from '@hugeicons/react-native';
+import { StarIcon } from '@hugeicons/core-free-icons';
 import { C, NewsArticle } from '../types';
 import { Header } from '../components';
 
@@ -16,7 +18,7 @@ export default function NewsArticleScreen({ route, navigation }: Props) {
   if (!article) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
-        <Header title="News" showBack onBackPress={() => navigation?.goBack()} />
+        <Header title="News" showBack onBackPress={() => navigation?.goBack()} rightAction={{ icon: <HugeiconsIcon icon={StarIcon} size={16} color="#FFD700" />, onPress: () => navigation?.navigate('Favourites') }} />
         <View style={s.errorContainer}>
           <Text style={s.errorText}>Article not found</Text>
         </View>
@@ -26,7 +28,7 @@ export default function NewsArticleScreen({ route, navigation }: Props) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
-      <Header title="News" showBack onBackPress={() => navigation?.goBack()} />
+      <Header title="News" showBack onBackPress={() => navigation?.goBack()} rightAction={{ icon: <HugeiconsIcon icon={StarIcon} size={16} color="#FFD700" />, onPress: () => navigation?.navigate('Favourites') }} />
       <ScrollView
         style={{ flex: 1, backgroundColor: C.bg }}
         showsVerticalScrollIndicator={false}

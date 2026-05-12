@@ -9,6 +9,7 @@ import {
   MatchCard, FilterPill, SectionHeader, LoadingSpinner,
   WorldCupBanner, NewsFeedCard,
 } from '../components';
+import { checkAndNotifyMatches } from '../services/notifications';
 
 interface Props {
   onNavigate: (screen: Screen, data?: any) => void;
@@ -96,6 +97,7 @@ export default function HomeScreen({ onNavigate, favourites, onToggleFavourite, 
         return true;
       });
       setAllMatches(merged);
+      checkAndNotifyMatches(merged, favourites);
     } catch {
       setLiveMatches([]);
       setAllMatches([]);

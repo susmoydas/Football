@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { HugeiconsIcon } from '@hugeicons/react-native';
+import { StarIcon } from '@hugeicons/core-free-icons';
 import { C, Match, Screen } from '../types';
 import { fetchRecentResults, FEATURED_LEAGUES } from '../services/api';
 import { TeamBadge, LoadingSpinner, EmptyState, Header } from '../components';
@@ -47,6 +49,7 @@ export default function ResultsScreen({ onNavigate, selectedLeagueId, navigation
         title="Results"
         showBack={true}
         onBackPress={() => navigation?.goBack()}
+        rightAction={{ icon: <HugeiconsIcon icon={StarIcon} size={16} color="#FFD700" />, onPress: () => navigation?.navigate('Home', { screen: 'Favourites' }) }}
       />
 
       <ScrollView

@@ -1,6 +1,8 @@
 import React from 'react';
 import { ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { HugeiconsIcon } from '@hugeicons/react-native';
+import { StarIcon } from '@hugeicons/core-free-icons';
 import { C, NewsArticle } from '../types';
 import { NewsFeedCard, Header } from '../components';
 
@@ -55,6 +57,10 @@ export default function NewsScreen({ navigation }: Props) {
         title="News"
         showBack
         onBackPress={() => navigation?.goBack()}
+        rightAction={{
+          icon: <HugeiconsIcon icon={StarIcon} size={16} color="#FFD700" />,
+          onPress: () => navigation?.navigate('Favourites'),
+        }}
       />
       <ScrollView
         style={{ flex: 1, backgroundColor: C.bg }}

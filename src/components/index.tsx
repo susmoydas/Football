@@ -4,6 +4,8 @@ import {
   StyleSheet,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { HugeiconsIcon } from '@hugeicons/react-native';
+import { ArrowLeft01Icon, StarIcon } from '@hugeicons/core-free-icons';
 import { C, Match, Team, Standing, NewsArticle } from '../types';
 
 // ─── TeamBadge ────────────────────────────────────────────────────────────────
@@ -91,7 +93,7 @@ export function MatchCard({ match, isFavourite, onToggleFavourite, onPress }: Ma
             <Text style={s.timeText}>{match.time}</Text>
           )}
           <TouchableOpacity onPress={onToggleFavourite} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={{ fontSize: 16 }}>{isFavourite ? '⭐' : '☆'}</Text>
+            <HugeiconsIcon icon={StarIcon} size={16} color={isFavourite ? '#FFD700' : C.textSecondary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -152,7 +154,7 @@ export function TeamCard({ team, isFavourite, onToggleFavourite, onPress, listMo
           <Text style={s.teamCardSub}>{team.country}</Text>
         </View>
         <TouchableOpacity onPress={onToggleFavourite} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Text style={{ fontSize: 18 }}>{isFavourite ? '⭐' : '☆'}</Text>
+          <HugeiconsIcon icon={StarIcon} size={16} color={isFavourite ? '#FFD700' : C.textSecondary} />
         </TouchableOpacity>
       </TouchableOpacity>
     );
@@ -160,7 +162,7 @@ export function TeamCard({ team, isFavourite, onToggleFavourite, onPress, listMo
   return (
     <TouchableOpacity style={s.teamCardGrid} onPress={onPress} activeOpacity={0.8}>
       <TouchableOpacity style={s.teamCardFavBtn} onPress={onToggleFavourite}>
-        <Text style={{ fontSize: 14 }}>{isFavourite ? '⭐' : '☆'}</Text>
+        <HugeiconsIcon icon={StarIcon} size={14} color={isFavourite ? '#FFD700' : '#FFFFFF'} />
       </TouchableOpacity>
       <TeamBadge uri={team.badge} size={56} />
       <Text style={[s.teamCardName, { marginTop: 8, textAlign: 'center' }]} numberOfLines={2}>{team.name}</Text>
@@ -370,19 +372,20 @@ interface HeaderProps {
   showBack?: boolean;
   onBackPress?: () => void;
   rightAction?: {
-    icon: string;
+    icon: React.ReactNode;
     onPress: () => void;
   };
-  isFavourite?: boolean;
 }
 
-export function Header({ title, showBack, onBackPress, rightAction, isFavourite }: HeaderProps) {
+export function Header({ title, showBack, onBackPress, rightAction }: HeaderProps) {
   return (
     <View style={s.headerContainer}>
       <View style={s.headerLeft}>
         {showBack && (
           <TouchableOpacity style={s.backBtn} onPress={onBackPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={{ fontSize: 24, color: C.textPrimary, lineHeight: 24 }}>‹</Text>
+            <View style={s.backCircle}>
+              <HugeiconsIcon icon={ArrowLeft01Icon} size={16} color={C.textPrimary} />
+            </View>
           </TouchableOpacity>
         )}
         <Text style={s.headerTitle} numberOfLines={1}>{title}</Text>
@@ -390,7 +393,7 @@ export function Header({ title, showBack, onBackPress, rightAction, isFavourite 
       <View style={s.headerRight}>
         {rightAction && (
           <TouchableOpacity style={s.headerIconBtn} onPress={rightAction.onPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={{ fontSize: 18 }}>{rightAction.icon}</Text>
+            {rightAction.icon}
           </TouchableOpacity>
         )}
       </View>
@@ -545,7 +548,7 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 2,
     backgroundColor: C.bg,
     borderBottomWidth: 1,
     borderBottomColor: C.border,
@@ -553,24 +556,34 @@ const s = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
     flex: 1,
   },
   headerTitle: {
     color: C.textPrimary,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     flex: 1,
   },
   backBtn: {
-    padding: 4,
-    marginRight: -12,
+    padding: 2,
+    marginRight: 2,
+  },
+  backCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: C.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: C.border,
   },
   headerRight: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 8,
   },
   headerIconBtn: {
-    padding: 8,
+    padding: 4,
   },
 });

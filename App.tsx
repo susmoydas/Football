@@ -5,8 +5,11 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { HugeiconsIcon } from '@hugeicons/react-native';
+import { Home01Icon, Calendar03Icon, UserGroupIcon, ChartIcon, MoreHorizontalIcon } from '@hugeicons/core-free-icons';
 import { C, Screen, Match, Team } from './src/types';
 import { getFavMatches, getFavTeams, toggleFavMatch, toggleFavTeam, getSelectedLeague } from './src/services/storage';
+import { setupNotificationHandler } from './src/services/notifications';
 
 // Screens
 import SplashScreen from './src/screens/SplashScreen';
@@ -25,12 +28,12 @@ const queryClient = new QueryClient();
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-const NAV_ITEMS: { id: string; icon: string; activeIcon: string; label: string }[] = [
-  { id: 'Home', icon: '⌂', activeIcon: '⌂', label: 'Home' },
-  { id: 'Fixtures', icon: '⊞', activeIcon: '⊞', label: 'Matches' },
-  { id: 'Teams', icon: '⚑', activeIcon: '⚑', label: 'Teams' },
-  { id: 'Standings', icon: '☰', activeIcon: '☰', label: 'Standings' },
-  { id: 'More', icon: '⋯', activeIcon: '⋯', label: 'More' },
+const NAV_ITEMS: { id: string; icon: any; label: string }[] = [
+  { id: 'Home', icon: Home01Icon, label: 'Home' },
+  { id: 'Fixtures', icon: Calendar03Icon, label: 'Matches' },
+  { id: 'Teams', icon: UserGroupIcon, label: 'Teams' },
+  { id: 'Standings', icon: ChartIcon, label: 'Standings' },
+  { id: 'More', icon: MoreHorizontalIcon, label: 'More' },
 ];
 
 function BottomNav({ state, navigation }: { state: any; navigation: any }) {
@@ -46,9 +49,9 @@ function BottomNav({ state, navigation }: { state: any; navigation: any }) {
               style={[nav.item, isActive && nav.itemActive]}
               onPress={() => navigation.navigate(item.id)}
             >
-              <View style={[nav.indicator, isActive && nav.indicatorActive]} />
-              <Text style={[nav.icon, isActive && { color: C.accent }]}>{item.activeIcon}</Text>
-              <Text style={[nav.label, isActive && { color: C.accent }]}>{item.label}</Text>
+          <View style={[nav.indicator, isActive && nav.indicatorActive]} />
+          <HugeiconsIcon icon={item.icon} size={20} color={isActive ? C.accent : C.textSecondary} />
+          <Text style={[nav.label, isActive && { color: C.accent }]}>{item.label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -145,6 +148,7 @@ function FixturesStack({ favourites, onToggleFavourite, selectedLeagueId }: { fa
             onToggleFavourite={onToggleFavourite}
             selectedLeagueId={selectedLeagueId}
             onNavigate={buildNavigate(navigation)}
+            navigation={navigation}
           />
         )}
       </Stack.Screen>
@@ -176,11 +180,12 @@ function TeamsStack({ favourites, onToggleFavourite, selectedLeagueId }: { favou
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="TeamsMain">
-        {() => (
+        {({ navigation }) => (
           <TeamsScreen
             favourites={favourites}
             onToggleFavourite={onToggleFavourite}
             selectedLeagueId={selectedLeagueId}
+            navigation={navigation}
           />
         )}
       </Stack.Screen>
@@ -192,7 +197,7 @@ function StandingsStack({ selectedLeagueId }: { selectedLeagueId: string }) {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="StandingsMain">
-        {() => <StandingsScreen selectedLeagueId={selectedLeagueId} />}
+        {({ navigation }) => <StandingsScreen selectedLeagueId={selectedLeagueId} navigation={navigation} />}
       </Stack.Screen>
     </Stack.Navigator>
   );
@@ -202,7 +207,7 @@ function MoreStack({ selectedLeagueId, onLeagueChange }: { selectedLeagueId: str
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MoreMain">
-        {() => <MoreScreen selectedLeagueId={selectedLeagueId} onLeagueChange={onLeagueChange} />}
+        {({ navigation }) => <MoreScreen selectedLeagueId={selectedLeagueId} onLeagueChange={onLeagueChange} navigation={navigation} />}
       </Stack.Screen>
     </Stack.Navigator>
   );
@@ -263,6 +268,7 @@ export default function App() {
   };
 
   useEffect(() => {
+    setupNotificationHandler();
     Promise.all([getFavMatches(), getFavTeams(), getSelectedLeague()]).then(([m, t, league]) => {
       setFavouriteIds(new Set([...m, ...t]));
       setSelectedLeagueId(LEGACY_LEAGUE_MAP[league] ?? league);
@@ -336,6 +342,5 @@ const nav = StyleSheet.create({
     borderRadius: 2, backgroundColor: 'transparent',
   },
   indicatorActive: { backgroundColor: C.accent },
-  icon: { fontSize: 20, color: C.textSecondary, marginBottom: 2 },
   label: { color: C.textSecondary, fontSize: 10, fontWeight: '600' },
 });

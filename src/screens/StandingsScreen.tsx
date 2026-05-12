@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { HugeiconsIcon } from '@hugeicons/react-native';
+import { StarIcon } from '@hugeicons/core-free-icons';
 import { C, Standing } from '../types';
 import { fetchStandings, FEATURED_LEAGUES } from '../services/api';
 import { StandingsTable, LoadingSpinner, EmptyState, Header } from '../components';
 
-interface Props { selectedLeagueId: string; }
+interface Props { selectedLeagueId: string; navigation?: any; }
 
 const SEASON = '2024-2025';
 
-export default function StandingsScreen({ selectedLeagueId }: Props) {
+export default function StandingsScreen({ selectedLeagueId, navigation }: Props) {
   const [rows, setRows] = useState<Standing[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -36,7 +38,12 @@ export default function StandingsScreen({ selectedLeagueId }: Props) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
-      <Header title="Standings" />
+      <Header
+        title="Standings"
+        showBack
+        onBackPress={() => navigation?.goBack()}
+        rightAction={{ icon: <HugeiconsIcon icon={StarIcon} size={16} color="#FFD700" />, onPress: () => navigation?.navigate('Home', { screen: 'Favourites' }) }}
+      />
       <ScrollView
         style={{ flex: 1, backgroundColor: C.bg }}
         showsVerticalScrollIndicator={false}

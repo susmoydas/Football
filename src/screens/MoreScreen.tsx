@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Linking, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { HugeiconsIcon } from '@hugeicons/react-native';
+import { StarIcon, Notification02Icon, Calendar03Icon, FootballIcon, CheckmarkCircle01Icon } from '@hugeicons/core-free-icons';
 import { C, League } from '../types';
 import { clearAllFavourites, saveSelectedLeague, NotificationSettings, getNotificationSettings, saveNotificationSettings } from '../services/storage';
 import { FEATURED_LEAGUES } from '../services/api';
+import { requestNotificationPermissions } from '../services/notifications';
 import { Header } from '../components';
 
 interface Props {
   selectedLeagueId: string;
   onLeagueChange: (id: string) => void;
+  navigation?: any;
 }
 
-export default function MoreScreen({ selectedLeagueId, onLeagueChange }: Props) {
+export default function MoreScreen({ selectedLeagueId, onLeagueChange, navigation }: Props) {
   const [showLeagues, setShowLeagues] = useState(false);
   const [notifSettings, setNotifSettings] = useState<NotificationSettings>({
     enabled: true,
@@ -30,6 +34,20 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange }: Props) 
   };
 
   const handleNotificationChange = async (key: keyof NotificationSettings, value: boolean) => {
+    if (key === 'enabled' && value) {
+      const granted = await requestNotificationPermissions();
+      if (!granted) {
+        Alert.alert(
+          'Permission Required',
+          'Please enable notifications in your device Settings to receive match alerts.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ],
+        );
+        return;
+      }
+    }
     const updated = { ...notifSettings, [key]: value };
     setNotifSettings(updated);
     await saveNotificationSettings(updated);
@@ -52,7 +70,12 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange }: Props) 
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
-      <Header title="Settings" />
+      <Header
+        title="Settings"
+        showBack
+        onBackPress={() => navigation?.goBack()}
+        rightAction={{ icon: <HugeiconsIcon icon={StarIcon} size={16} color="#FFD700" />, onPress: () => navigation?.navigate('Home', { screen: 'Favourites' }) }}
+      />
       <ScrollView style={{ flex: 1, backgroundColor: C.bg }} showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
       {/* Profile card */}
       <View style={s.profileCard}>
@@ -101,11 +124,11 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange }: Props) 
         <View style={s.settingRow}>
           <View style={s.settingLeft}>
             <View style={[s.settingIcon, { backgroundColor: C.accent + '20' }]}>
-              <Text style={{ fontSize: 16 }}>🔔</Text>
+              <HugeiconsIcon icon={Notification02Icon} size={16} color={C.accent} />
             </View>
             <View>
               <Text style={s.settingTitle}>Enable Notifications</Text>
-              <Text style={s.settingValue}>Get match updates</Text>
+              <Text style={s.settingValue}>Google-style match alerts</Text>
             </View>
           </View>
           <Switch
@@ -121,7 +144,7 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange }: Props) 
             <View style={[s.settingRow, { borderTopWidth: 1, borderTopColor: C.border }]}>
               <View style={s.settingLeft}>
                 <View style={[s.settingIcon, { backgroundColor: C.gold + '20' }]}>
-                  <Text style={{ fontSize: 16 }}>📅</Text>
+                  <HugeiconsIcon icon={Calendar03Icon} size={16} color={C.gold} />
                 </View>
                 <Text style={s.settingTitle}>Match Today</Text>
               </View>
@@ -136,7 +159,7 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange }: Props) 
             <View style={[s.settingRow, { borderTopWidth: 1, borderTopColor: C.border }]}>
               <View style={s.settingLeft}>
                 <View style={[s.settingIcon, { backgroundColor: C.red + '20' }]}>
-                  <Text style={{ fontSize: 16 }}>🔴</Text>
+                  <HugeiconsIcon icon={FootballIcon} size={16} color={C.red} />
                 </View>
                 <Text style={s.settingTitle}>Match Running</Text>
               </View>
@@ -151,7 +174,7 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange }: Props) 
             <View style={[s.settingRow, { borderTopWidth: 1, borderTopColor: C.border }]}>
               <View style={s.settingLeft}>
                 <View style={[s.settingIcon, { backgroundColor: C.gold + '20' }]}>
-                  <Text style={{ fontSize: 16 }}>✓</Text>
+                  <HugeiconsIcon icon={CheckmarkCircle01Icon} size={16} color={C.gold} />
                 </View>
                 <Text style={s.settingTitle}>Match Done</Text>
               </View>
@@ -170,8 +193,8 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange }: Props) 
       <Text style={s.sectionLabel}>Settings</Text>
       <View style={s.card}>
         {[
-          { icon: '⭐', label: 'Clear Favourites', color: C.red, onPress: handleClearFavs },
-          { icon: '🌐', label: 'TheSportsDB', color: C.accent, onPress: () => Linking.openURL('https://www.thesportsdb.com') },
+          { icon: 'star', label: 'Clear Favourites', color: C.red, onPress: handleClearFavs },
+          { icon: 'web', label: 'TheSportsDB', color: C.accent, onPress: () => Linking.openURL('https://www.thesportsdb.com') },
         ].map((item, i, arr) => (
           <TouchableOpacity
             key={item.label}
@@ -180,7 +203,11 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange }: Props) 
           >
             <View style={s.settingLeft}>
               <View style={[s.settingIcon, { backgroundColor: item.color + '20' }]}>
-                <Text style={{ fontSize: 16 }}>{item.icon}</Text>
+                {item.icon === 'star' ? (
+                  <HugeiconsIcon icon={StarIcon} size={16} color={item.color} />
+                ) : (
+                  <Text style={{ fontSize: 16 }}>{item.icon}</Text>
+                )}
               </View>
               <Text style={[s.settingTitle, { color: item.color }]}>{item.label}</Text>
             </View>
