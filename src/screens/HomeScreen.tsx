@@ -72,7 +72,7 @@ function isTomorrow(dateStr: string): boolean {
 }
 
 export default function HomeScreen({ onNavigate, favourites, onToggleFavourite, selectedLeagueId }: Props) {
-  const [tab, setTab] = useState<Tab>('live');
+  const [tab, setTab] = useState<Tab>('all');
   const [liveMatches, setLiveMatches] = useState<Match[]>([]);
   const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,6 +96,9 @@ export default function HomeScreen({ onNavigate, favourites, onToggleFavourite, 
         return true;
       });
       setAllMatches(merged);
+    } catch {
+      setLiveMatches([]);
+      setAllMatches([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -223,10 +226,7 @@ export default function HomeScreen({ onNavigate, favourites, onToggleFavourite, 
               <Text style={s.newsViewAll}>View all</Text>
             </TouchableOpacity>
           </View>
-          {NEWS.filter(n => n.featured).slice(0, 1).map(n => (
-            <NewsFeedCard key={n.id} article={n} featured onPress={() => onNavigate('news-article', n)} />
-          ))}
-          {NEWS.filter(n => !n.featured).slice(0, 2).map(n => (
+          {NEWS.slice(0, 3).map(n => (
             <NewsFeedCard key={n.id} article={n} onPress={() => onNavigate('news-article', n)} />
           ))}
         </View>

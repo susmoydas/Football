@@ -45,6 +45,7 @@ function countryToFlag(country: string): string | undefined {
     'South Korea': '🇰🇷',
     'Australia': '🇦🇺',
     'Saudi Arabia': '🇸🇦',
+    'International': '🌍',
     'Europe': '🏆',
   };
   return map[country];
@@ -226,13 +227,17 @@ function toStanding(r: BSDStandingRow): Standing {
 // ─── Featured leagues ─────────────────────────────────────────────────────────
 
 export const FEATURED_LEAGUES: League[] = [
-  { id: '1', name: 'English Premier League', badge: undefined, country: 'England' },
-  { id: '3', name: 'Spanish La Liga', badge: undefined, country: 'Spain' },
+  { id: '27', name: 'World Cup 2026', badge: undefined, country: 'International' },
+  { id: '1', name: 'Premier League', badge: undefined, country: 'England' },
+  { id: '3', name: 'La Liga', badge: undefined, country: 'Spain' },
   { id: '5', name: 'Bundesliga', badge: undefined, country: 'Germany' },
   { id: '4', name: 'Serie A', badge: undefined, country: 'Italy' },
   { id: '6', name: 'Ligue 1', badge: undefined, country: 'France' },
-  { id: '7', name: 'UEFA Champions League', badge: undefined, country: 'Europe' },
-  { id: '18', name: 'MLS', badge: undefined, country: 'USA' },
+  { id: '2', name: 'Liga Portugal Betclic', badge: undefined, country: 'Portugal' },
+  { id: '10', name: 'Eredivisie', badge: undefined, country: 'Netherlands' },
+  { id: '11', name: 'Trendyol Super Lig', badge: undefined, country: 'Turkey' },
+  { id: '13', name: 'Scottish Premiership', badge: undefined, country: 'Scotland' },
+  { id: '14', name: 'Pro League', badge: undefined, country: 'Belgium' },
 ];
 
 // ─── Team country cache (name -> flag) ────────────────────────────────────────

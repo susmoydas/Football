@@ -1,7 +1,7 @@
 import React from 'react';
 import { ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { C, Screen, NewsArticle } from '../types';
+import { C, NewsArticle } from '../types';
 import { NewsFeedCard, Header } from '../components';
 
 interface Props {
@@ -65,7 +65,6 @@ export default function NewsScreen({ navigation }: Props) {
           <NewsFeedCard
             key={n.id}
             article={n}
-            featured={n.featured}
             onPress={() => navigation?.navigate('NewsArticle', { article: n })}
           />
         ))}

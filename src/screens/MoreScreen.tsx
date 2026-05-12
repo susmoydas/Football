@@ -46,7 +46,6 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange }: Props) 
     await saveSelectedLeague(id);
     onLeagueChange(id);
     setShowLeagues(false);
-    Alert.alert('League Changed', `Now showing ${FEATURED_LEAGUES.find(l => l.id === id)?.name}`);
   };
 
   const activeName = FEATURED_LEAGUES.find(l => l.id === selectedLeagueId)?.name ?? '';

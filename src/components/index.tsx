@@ -270,19 +270,19 @@ export function WorldCupBanner({ leagueName, onViewFixtures }: BannerProps) {
 
 // ─── NewsFeedCard ─────────────────────────────────────────────────────────────
 
-export function NewsFeedCard({ article, featured, onPress }: { article: NewsArticle; featured?: boolean; onPress?: () => void }) {
+export function NewsFeedCard({ article, onPress }: { article: NewsArticle; featured?: boolean; onPress?: () => void }) {
   const [imgError, setImgError] = React.useState(false);
   return (
-    <TouchableOpacity style={[s.newsCard, featured && s.newsCardFeatured]} activeOpacity={0.8} onPress={onPress}>
-      <View style={[s.newsImage, featured ? { height: 160 } : { height: 90 }]}>
+    <TouchableOpacity style={s.newsCard} activeOpacity={0.8} onPress={onPress}>
+      <View style={s.newsImage}>
         {article.image && !imgError ? (
-          <Image source={{ uri: article.image }} style={{ width: '100%', height: '100%' }} resizeMode="cover" onError={() => setImgError(true)} />
+          <Image source={{ uri: article.image }} style={{ width: '100%', aspectRatio: 16 / 9 }} resizeMode="cover" onError={() => setImgError(true)} />
         ) : (
-          <Text style={{ fontSize: featured ? 48 : 32 }}>📰</Text>
+          <Text style={{ fontSize: 40 }}>📰</Text>
         )}
       </View>
       <View style={s.newsBody}>
-        <Text style={[s.newsTitle, featured && { fontSize: 16 }]} numberOfLines={2}>{article.title}</Text>
+        <Text style={s.newsTitle} numberOfLines={2}>{article.title}</Text>
         <View style={s.newsMeta}>
           <Text style={s.newsSource}>{article.source}</Text>
           <Text style={s.newsDot}>•</Text>
@@ -508,12 +508,9 @@ const s = StyleSheet.create({
     backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border,
     overflow: 'hidden', marginBottom: 12,
   },
-  newsCardFeatured: {
-    borderColor: C.accent + '40',
-  },
   newsImage: { backgroundColor: C.cardAlt, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   newsBody: { padding: 14 },
-  newsTitle: { color: C.textPrimary, fontSize: 13, fontWeight: '600', marginBottom: 6 },
+  newsTitle: { color: C.textPrimary, fontSize: 14, fontWeight: '600', marginBottom: 6 },
   newsMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   newsSource: { color: C.accent, fontSize: 12, fontWeight: '600' },
   newsDot: { color: C.textSecondary, fontSize: 12 },
