@@ -1,4 +1,4 @@
 export const BSD = {
   BASE_URL: 'https://sports.bzzoiro.com/api/v2',
-  TOKEN: 'REPLACE_WITH_YOUR_BSD_API_KEY',
+  TOKEN: '73c793b9bc6df43cfa7ebf6f13ca1c8b9903cf5a',
 };

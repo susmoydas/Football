@@ -1,16 +1,27 @@
 import React from 'react';
 import {
   View, Text, TouchableOpacity, Image, ActivityIndicator,
-  StyleSheet, Dimensions,
+  StyleSheet,
 } from 'react-native';
-import { C, Match, Team, Standing } from '../types';
-
-const { width } = Dimensions.get('window');
+import { LinearGradient } from 'expo-linear-gradient';
+import { C, Match, Team, Standing, NewsArticle } from '../types';
 
 // ─── TeamBadge ────────────────────────────────────────────────────────────────
 
 export function TeamBadge({ uri, size = 40, emoji = '⚽' }: { uri?: string; size?: number; emoji?: string }) {
   const [error, setError] = React.useState(false);
+
+  if (uri && !uri.startsWith('http') && !uri.startsWith('file') && !uri.startsWith('data:')) {
+    return (
+      <View style={{
+        width: size, height: size, borderRadius: size / 2,
+        backgroundColor: C.cardAlt, alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Text style={{ fontSize: size * 0.5 }}>{uri}</Text>
+      </View>
+    );
+  }
+
   if (uri && !error) {
     return (
       <Image
@@ -27,6 +38,31 @@ export function TeamBadge({ uri, size = 40, emoji = '⚽' }: { uri?: string; siz
       backgroundColor: C.cardAlt, alignItems: 'center', justifyContent: 'center',
     }}>
       <Text style={{ fontSize: size * 0.45 }}>{emoji}</Text>
+    </View>
+  );
+}
+
+// ─── StatusBadge ──────────────────────────────────────────────────────────────
+
+export function StatusBadge({ status, progress }: { status: Match['status']; progress?: string }) {
+  if (status === 'live') {
+    return (
+      <View style={s.badgeLive}>
+        <View style={s.badgeLiveDot} />
+        <Text style={s.badgeLiveText}>LIVE{progress ? ` ${progress}'` : ''}</Text>
+      </View>
+    );
+  }
+  if (status === 'finished') {
+    return (
+      <View style={s.badgeFinished}>
+        <Text style={s.badgeFinishedText}>FINISHED</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={s.badgeUpcoming}>
+      <Text style={s.badgeUpcomingText}>UPCOMING</Text>
     </View>
   );
 }
@@ -50,47 +86,40 @@ export function MatchCard({ match, isFavourite, onToggleFavourite, onPress }: Ma
       <View style={s.matchCardTop}>
         <Text style={s.leagueText} numberOfLines={1}>{match.league}</Text>
         <View style={s.matchCardTopRight}>
-          {isLive && (
-            <View style={s.liveBadge}>
-              <View style={s.liveDot} />
-              <Text style={s.liveText}>LIVE{match.progress ? ` ${match.progress}` : ''}</Text>
-            </View>
-          )}
-          {!isLive && match.time && !isFinished && (
+          <StatusBadge status={match.status} progress={match.progress} />
+          {!isLive && !isFinished && match.time && (
             <Text style={s.timeText}>{match.time}</Text>
           )}
-          {isFinished && <Text style={s.ftText}>FT</Text>}
           <TouchableOpacity onPress={onToggleFavourite} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Text style={{ fontSize: 16 }}>{isFavourite ? '⭐' : '☆'}</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Teams + scores */}
+      {/* Teams + scores inline */}
       <View style={s.teamsBlock}>
-        {/* Home */}
         <View style={s.teamRow}>
-          <View style={s.teamLeft}>
-            <TeamBadge uri={match.homeBadge} size={28} />
-            <Text style={s.teamNameText} numberOfLines={1}>{match.homeTeam}</Text>
+          <TeamBadge uri={match.homeBadge} size={28} />
+          <Text style={s.teamNameText} numberOfLines={1}>{match.homeTeam}</Text>
+          <View style={s.scoreBlock}>
+            {isLive || isFinished ? (
+              <Text style={[s.scoreText, isLive && { color: C.accent }]}>{match.homeScore ?? 0}</Text>
+            ) : null}
           </View>
-          {!isFinished && match.status !== 'live' ? null : (
-            <Text style={[s.scoreText, isLive && { color: C.accent }]}>
-              {match.homeScore ?? 0}
-            </Text>
-          )}
         </View>
-        {/* Away */}
+        <View style={s.vsDivider}>
+          <View style={s.vsLine} />
+          {!isLive && !isFinished ? <Text style={s.vsText}>{match.time || 'vs'}</Text> : <Text style={s.vsText}>vs</Text>}
+          <View style={s.vsLine} />
+        </View>
         <View style={s.teamRow}>
-          <View style={s.teamLeft}>
-            <TeamBadge uri={match.awayBadge} size={28} />
-            <Text style={s.teamNameText} numberOfLines={1}>{match.awayTeam}</Text>
+          <TeamBadge uri={match.awayBadge} size={28} />
+          <Text style={s.teamNameText} numberOfLines={1}>{match.awayTeam}</Text>
+          <View style={s.scoreBlock}>
+            {isLive || isFinished ? (
+              <Text style={[s.scoreText, isLive && { color: C.accent }]}>{match.awayScore ?? 0}</Text>
+            ) : null}
           </View>
-          {!isFinished && match.status !== 'live' ? null : (
-            <Text style={[s.scoreText, isLive && { color: C.accent }]}>
-              {match.awayScore ?? 0}
-            </Text>
-          )}
         </View>
       </View>
 
@@ -201,7 +230,66 @@ export function StatBar({ label, home, away }: { label: string; home: number; aw
   );
 }
 
-// ─── NewsCard ─────────────────────────────────────────────────────────────────
+// ─── WorldCupBanner ──────────────────────────────────────────────────────────
+
+interface BannerProps {
+  leagueName: string;
+  onViewFixtures: () => void;
+}
+
+export function WorldCupBanner({ leagueName, onViewFixtures }: BannerProps) {
+  return (
+    <LinearGradient
+      colors={['#0F2B3D', '#1A3F54', '#0D2137']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={s.banner}
+    >
+      {/* Decorative circles */}
+      <View style={s.bannerCircle1} />
+      <View style={s.bannerCircle2} />
+      <View style={s.bannerCircle3} />
+
+      {/* Flag decorations */}
+      <Text style={s.bannerFlags} numberOfLines={1}>
+        🇺🇸🇨🇦🇲🇽🇺🇸🇨🇦🇲🇽
+      </Text>
+
+      <View style={s.bannerContent}>
+        <Text style={s.bannerGreeting}>Welcome back</Text>
+        <Text style={s.bannerTitle}>🏆 FIFA World Cup 2026</Text>
+        <Text style={s.bannerSub}>{leagueName}</Text>
+        <Text style={s.bannerInfo}>Live scores, fixtures & football updates</Text>
+        <TouchableOpacity style={s.bannerBtn} onPress={onViewFixtures}>
+          <Text style={s.bannerBtnText}>View Fixtures</Text>
+        </TouchableOpacity>
+      </View>
+    </LinearGradient>
+  );
+}
+
+// ─── NewsFeedCard ─────────────────────────────────────────────────────────────
+
+export function NewsFeedCard({ article, featured }: { article: NewsArticle; featured?: boolean }) {
+  return (
+    <TouchableOpacity style={[s.newsCard, featured && s.newsCardFeatured]} activeOpacity={0.8}>
+      <View style={[s.newsImage, featured ? { height: 160 } : { height: 90 }]}>
+        <Text style={{ fontSize: featured ? 48 : 32 }}>📰</Text>
+      </View>
+      <View style={s.newsBody}>
+        <Text style={[s.newsTitle, featured && { fontSize: 16 }]} numberOfLines={2}>{article.title}</Text>
+        <View style={s.newsMeta}>
+          <Text style={s.newsSource}>{article.source}</Text>
+          <Text style={s.newsDot}>•</Text>
+          <Text style={s.newsTime}>{article.time}</Text>
+        </View>
+        <Text style={s.newsReadMore}>Read more →</Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// ─── NewsCard (legacy) ────────────────────────────────────────────────────────
 
 export function NewsCard({ title, source, time, featured }: { title: string; source: string; time: string; featured?: boolean }) {
   return (
@@ -317,21 +405,40 @@ const s = StyleSheet.create({
     borderColor: C.border,
     marginBottom: 10,
   },
-  matchCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  matchCardTopRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  leagueText: { color: C.textSecondary, fontSize: 12, flex: 1 },
-  liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.red },
-  liveText: { color: C.red, fontSize: 12, fontWeight: '700' },
-  timeText: { color: C.textSecondary, fontSize: 12 },
-  ftText: { color: C.textSecondary, fontSize: 12, fontWeight: '600' },
-  teamsBlock: { gap: 8 },
-  teamRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  teamLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
-  teamNameText: { color: C.textPrimary, fontSize: 15, fontWeight: '500', flex: 1 },
-  scoreText: { color: C.textPrimary, fontSize: 20, fontWeight: '700', minWidth: 28, textAlign: 'right' },
-  matchCardFooter: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border },
-  ftLabel: { color: C.textSecondary, fontSize: 12 },
+  matchCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  matchCardTopRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  leagueText: { color: C.textSecondary, fontSize: 11, flex: 1, fontWeight: '500' },
+  timeText: { color: C.textSecondary, fontSize: 12, fontWeight: '600' },
+
+  // StatusBadge
+  badgeLive: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: C.accent + '20', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
+  },
+  badgeLiveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.accent },
+  badgeLiveText: { color: C.accent, fontSize: 11, fontWeight: '800' },
+  badgeFinished: {
+    backgroundColor: C.red + '20', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
+  },
+  badgeFinishedText: { color: C.red, fontSize: 11, fontWeight: '800' },
+  badgeUpcoming: {
+    backgroundColor: C.textSecondary + '20', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
+  },
+  badgeUpcomingText: { color: C.textSecondary, fontSize: 11, fontWeight: '800' },
+
+  teamsBlock: { gap: 4, marginTop: 4 },
+  teamRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  teamNameText: { color: C.textPrimary, fontSize: 14, fontWeight: '500', flex: 1 },
+  scoreBlock: { minWidth: 28, alignItems: 'flex-end' },
+  scoreText: { color: C.textPrimary, fontSize: 20, fontWeight: '700' },
+  vsDivider: {
+    flexDirection: 'row', alignItems: 'center', marginVertical: 2,
+    paddingLeft: 36,
+  },
+  vsLine: { flex: 1, height: 1, backgroundColor: C.border },
+  vsText: { color: C.textSecondary, fontSize: 10, marginHorizontal: 8, fontWeight: '600' },
+  matchCardFooter: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: C.border },
+  ftLabel: { color: C.textSecondary, fontSize: 11, fontWeight: '500' },
 
   // TeamCard grid
   teamCardGrid: {
@@ -358,6 +465,56 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
 
+  // Banner
+  banner: {
+    borderRadius: 24,
+    padding: 20,
+    paddingTop: 28,
+    marginBottom: 20,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  bannerCircle1: {
+    position: 'absolute', width: 160, height: 160, borderRadius: 80,
+    backgroundColor: C.accent + '20', top: -60, right: -40,
+  },
+  bannerCircle2: {
+    position: 'absolute', width: 100, height: 100, borderRadius: 50,
+    backgroundColor: '#FFD16615', bottom: -30, left: -20,
+  },
+  bannerCircle3: {
+    position: 'absolute', width: 60, height: 60, borderRadius: 30,
+    backgroundColor: C.red + '15', top: 20, left: '60%',
+  },
+  bannerFlags: { fontSize: 18, letterSpacing: 4, marginBottom: 8, opacity: 0.6 },
+  bannerContent: { position: 'relative', zIndex: 1 },
+  bannerGreeting: { color: C.textSecondary, fontSize: 13, marginBottom: 2 },
+  bannerTitle: { color: '#FFFFFF', fontSize: 22, fontWeight: '800', marginBottom: 4 },
+  bannerSub: { color: C.accent, fontSize: 14, fontWeight: '600', marginBottom: 2 },
+  bannerInfo: { color: C.textSecondary, fontSize: 12, marginBottom: 16 },
+  bannerBtn: {
+    backgroundColor: C.accent, paddingHorizontal: 24, paddingVertical: 10,
+    borderRadius: 24, alignSelf: 'flex-start',
+  },
+  bannerBtnText: { color: C.bg, fontSize: 13, fontWeight: '800' },
+
+  // News
+  newsCard: {
+    backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border,
+    overflow: 'hidden', marginBottom: 12,
+  },
+  newsCardFeatured: {
+    borderColor: C.accent + '40',
+  },
+  newsImage: { backgroundColor: C.cardAlt, alignItems: 'center', justifyContent: 'center' },
+  newsBody: { padding: 14 },
+  newsTitle: { color: C.textPrimary, fontSize: 13, fontWeight: '600', marginBottom: 6 },
+  newsMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  newsSource: { color: C.accent, fontSize: 12, fontWeight: '600' },
+  newsDot: { color: C.textSecondary, fontSize: 12 },
+  newsTime: { color: C.textSecondary, fontSize: 12 },
+  newsReadMore: { color: C.accent, fontSize: 12, marginTop: 8, fontWeight: '500' },
+
   // Standings
   standTable: {
     backgroundColor: C.card,
@@ -375,10 +532,6 @@ const s = StyleSheet.create({
   standTh: { flex: 1, color: C.textSecondary, fontSize: 11, fontWeight: '600', textAlign: 'center' },
   standRow: { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center' },
   standTd: { flex: 1, color: C.textPrimary, fontSize: 12, textAlign: 'center' },
-
-  // News
-  newsCard: { backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
-  newsImage: { backgroundColor: C.cardAlt, alignItems: 'center', justifyContent: 'center' },
 
   // Pill
   pill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: C.card },

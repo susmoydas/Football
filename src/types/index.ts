@@ -125,4 +125,14 @@ export interface League {
   country?: string;
 }
 
+export interface NewsArticle {
+  id: string;
+  title: string;
+  source: string;
+  time: string;
+  featured?: boolean;
+  image?: string;
+  content?: string;
+}
+
 export type Screen = 'splash' | 'home' | 'fixtures' | 'teams' | 'standings' | 'more' | 'match-details' | 'favourites' | 'news' | 'results';

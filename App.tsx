@@ -24,12 +24,12 @@ const queryClient = new QueryClient();
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-const NAV_ITEMS: { id: string; icon: string; label: string }[] = [
-  { id: 'Home', icon: '🏠', label: 'Home' },
-  { id: 'Fixtures', icon: '📅', label: 'Matches' },
-  { id: 'Teams', icon: '👕', label: 'Teams' },
-  { id: 'Standings', icon: '📊', label: 'Standings' },
-  { id: 'More', icon: '☰', label: 'More' },
+const NAV_ITEMS: { id: string; icon: string; activeIcon: string; label: string }[] = [
+  { id: 'Home', icon: '⌂', activeIcon: '⌂', label: 'Home' },
+  { id: 'Fixtures', icon: '⊞', activeIcon: '⊞', label: 'Matches' },
+  { id: 'Teams', icon: '⚑', activeIcon: '⚑', label: 'Teams' },
+  { id: 'Standings', icon: '☰', activeIcon: '☰', label: 'Standings' },
+  { id: 'More', icon: '⋯', activeIcon: '⋯', label: 'More' },
 ];
 
 function BottomNav({ state, navigation }: { state: any; navigation: any }) {
@@ -42,10 +42,11 @@ function BottomNav({ state, navigation }: { state: any; navigation: any }) {
           return (
             <TouchableOpacity
               key={item.id}
-              style={nav.item}
+              style={[nav.item, isActive && nav.itemActive]}
               onPress={() => navigation.navigate(item.id)}
             >
-              <Text style={[nav.icon, isActive && { color: C.accent }]}>{item.icon}</Text>
+              <View style={[nav.indicator, isActive && nav.indicatorActive]} />
+              <Text style={[nav.icon, isActive && { color: C.accent }]}>{item.activeIcon}</Text>
               <Text style={[nav.label, isActive && { color: C.accent }]}>{item.label}</Text>
             </TouchableOpacity>
           );
@@ -320,7 +321,13 @@ const nav = StyleSheet.create({
     paddingHorizontal: 4,
     paddingBottom: Platform.OS === 'ios' ? 20 : 8,
   },
-  item: { flex: 1, alignItems: 'center', paddingVertical: 4 },
+  item: { flex: 1, alignItems: 'center', paddingVertical: 4, position: 'relative' },
+  itemActive: {},
+  indicator: {
+    position: 'absolute', top: -9, left: '20%', right: '20%', height: 3,
+    borderRadius: 2, backgroundColor: 'transparent',
+  },
+  indicatorActive: { backgroundColor: C.accent },
   icon: { fontSize: 20, color: C.textSecondary, marginBottom: 2 },
   label: { color: C.textSecondary, fontSize: 10, fontWeight: '600' },
 });

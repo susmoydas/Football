@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { C, Match, Screen } from '../types';
-import { fetchLiveEvents, fetchNextEvents, FEATURED_LEAGUES } from '../services/api';
-import { MatchCard, FilterPill, SectionHeader, LoadingSpinner } from '../components';
+import { C, Match, Screen, NewsArticle } from '../types';
+import {
+  fetchLiveEvents, fetchLeagueEvents, fetchNextEvents, FEATURED_LEAGUES,
+} from '../services/api';
+import {
+  MatchCard, FilterPill, SectionHeader, LoadingSpinner,
+  WorldCupBanner, NewsFeedCard,
+} from '../components';
 
 interface Props {
   onNavigate: (screen: Screen, data?: any) => void;
@@ -12,12 +17,34 @@ interface Props {
   selectedLeagueId: string;
 }
 
-type Tab = 'live' | 'today' | 'upcoming' | 'all';
+type Tab = 'live' | 'today' | 'tomorrow' | 'all';
+
+const NEWS: NewsArticle[] = [
+  { id: '1', title: 'World Cup 2026: Complete guide to host cities and venues across USA, Canada & Mexico', source: 'FIFA News', time: '2 hours ago', featured: true },
+  { id: '2', title: 'Champions League quarter-finals: Preview of the biggest matches this week', source: 'UEFA.com', time: '4 hours ago' },
+  { id: '3', title: 'Premier League title race: The key matches that will decide the champion', source: 'BBC Sport', time: '5 hours ago' },
+  { id: '4', title: 'La Liga: Barcelona and Real Madrid battle for top spot with crunch fixtures ahead', source: 'Marca', time: '7 hours ago' },
+  { id: '5', title: 'Transfer news: Summer window set to be one of the most active in history', source: 'Sky Sports', time: '9 hours ago' },
+  { id: '6', title: 'Bundesliga: Bayer Leverkusen continue incredible unbeaten run this season', source: 'Kicker', time: '12 hours ago' },
+];
+
+function isToday(dateStr: string): boolean {
+  const today = new Date();
+  const d = new Date(dateStr);
+  return d.toDateString() === today.toDateString();
+}
+
+function isTomorrow(dateStr: string): boolean {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const d = new Date(dateStr);
+  return d.toDateString() === tomorrow.toDateString();
+}
 
 export default function HomeScreen({ onNavigate, favourites, onToggleFavourite, selectedLeagueId }: Props) {
-  const [tab, setTab] = useState<Tab>('upcoming');
+  const [tab, setTab] = useState<Tab>('live');
   const [liveMatches, setLiveMatches] = useState<Match[]>([]);
-  const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([]);
+  const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -25,12 +52,20 @@ export default function HomeScreen({ onNavigate, favourites, onToggleFavourite, 
 
   const load = async () => {
     try {
-      const [live, upcoming] = await Promise.all([
-        fetchLiveEvents(),
+      const [live, all, next] = await Promise.all([
+        fetchLiveEvents(selectedLeagueId),
+        fetchLeagueEvents(selectedLeagueId),
         fetchNextEvents(selectedLeagueId),
       ]);
       setLiveMatches(live);
-      setUpcomingMatches(upcoming);
+
+      const seen = new Set<string>();
+      const merged = [...live, ...all, ...next].filter(m => {
+        if (seen.has(m.id)) return false;
+        seen.add(m.id);
+        return true;
+      });
+      setAllMatches(merged);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -41,7 +76,13 @@ export default function HomeScreen({ onNavigate, favourites, onToggleFavourite, 
 
   const onRefresh = () => { setRefreshing(true); load(); };
 
-  const displayedMatches = tab === 'live' ? liveMatches : upcomingMatches;
+  const todayMatches = allMatches.filter(m => isToday(m.date) || m.status === 'live');
+  const tomorrowMatches = allMatches.filter(m => isTomorrow(m.date));
+
+  const displayedMatches = tab === 'live' ? liveMatches
+    : tab === 'today' ? todayMatches
+    : tab === 'tomorrow' ? tomorrowMatches
+    : allMatches;
 
   if (loading) return <LoadingSpinner message="Loading matches…" />;
 
@@ -51,121 +92,117 @@ export default function HomeScreen({ onNavigate, favourites, onToggleFavourite, 
         style={s.container}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
-        contentContainerStyle={{ paddingBottom: 48 }}
+        contentContainerStyle={{ paddingBottom: 32 }}
       >
-      <View style={s.inner}>
-        {/* Header */}
-        <View style={s.header}>
-          <View>
-            <Text style={s.welcomeText}>Welcome back</Text>
-            <Text style={s.headerTitle}>Football 2026 Code</Text>
-          </View>
-          <View style={s.headerIcons}>
-          <TouchableOpacity style={s.iconBtn} onPress={() => onNavigate('favourites')}>
-              <Text style={{ fontSize: 20 }}>⭐</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <View style={s.inner}>
+          {/* Banner */}
+          <WorldCupBanner
+            leagueName={league.name}
+            onViewFixtures={() => onNavigate('fixtures')}
+          />
 
-        {/* Hero Card */}
-        <View style={s.heroCard}>
-          <View style={s.heroCircle1} />
-          <View style={s.heroCircle2} />
-          <View style={{ position: 'relative', zIndex: 1 }}>
-            <Text style={s.heroTitle}>🏆 {league.name}</Text>
-            <Text style={s.heroSub}>Live scores & fixtures</Text>
-            <TouchableOpacity style={s.heroBtn} onPress={() => onNavigate('fixtures')}>
-              <Text style={s.heroBtnText}>View Fixtures</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+          {/* Tab filters */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }} contentContainerStyle={{ gap: 8, paddingRight: 4 }}>
+            {([['live', '● Live'], ['today', 'Today'], ['tomorrow', 'Tomorrow'], ['all', 'All']] as [Tab, string][]).map(([t, label]) => (
+              <FilterPill key={t} label={label} active={tab === t} onPress={() => setTab(t)} />
+            ))}
+          </ScrollView>
 
-        {/* Tab filters */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }} contentContainerStyle={{ gap: 8, paddingRight: 4 }}>
-          {([['live', '🔴 Live'], ['upcoming', 'Upcoming'], ['all', 'All']] as [Tab, string][]).map(([t, label]) => (
-            <FilterPill key={t} label={label} active={tab === t} onPress={() => setTab(t)} />
-          ))}
-        </ScrollView>
+          {/* Match count */}
+          <Text style={s.matchCount}>{displayedMatches.length} match{displayedMatches.length !== 1 ? 'es' : ''}</Text>
 
-        {/* Matches */}
-        {tab === 'live' && (
-          <>
-            <SectionHeader title="Live Now" />
-            {liveMatches.length === 0
-              ? <Text style={s.emptyHint}>No live matches right now</Text>
-              : liveMatches.map(m => (
-                <MatchCard
-                  key={m.id} match={m}
-                  isFavourite={favourites.has(m.id)}
-                  onToggleFavourite={() => onToggleFavourite(m.id)}
-                  onPress={() => onNavigate('match-details', m)}
-                />
-              ))
-            }
-          </>
-        )}
-
-        {tab === 'upcoming' && (
-          <>
-            <SectionHeader title="Upcoming Matches" />
-            {upcomingMatches.length === 0
-              ? <Text style={s.emptyHint}>No upcoming matches found</Text>
-              : upcomingMatches.slice(0, 6).map(m => (
-                <MatchCard
-                  key={m.id} match={m}
-                  isFavourite={favourites.has(m.id)}
-                  onToggleFavourite={() => onToggleFavourite(m.id)}
-                  onPress={() => onNavigate('match-details', m)}
-                />
-              ))
-            }
-          </>
-        )}
-
-        {tab === 'all' && (
-          <>
-            {liveMatches.length > 0 && (
-              <>
-                <SectionHeader title="🔴 Live" />
-                {liveMatches.map(m => (
-                  <MatchCard key={m.id} match={m}
+          {/* Live matches */}
+          {tab === 'live' && (
+            <>
+              {liveMatches.length === 0
+                ? <Text style={s.emptyHint}>No live matches right now</Text>
+                : liveMatches.map(m => (
+                  <MatchCard
+                    key={m.id} match={m}
                     isFavourite={favourites.has(m.id)}
                     onToggleFavourite={() => onToggleFavourite(m.id)}
-                    onPress={() => onNavigate('match-details', m)} />
-                ))}
-              </>
-            )}
-            <SectionHeader title="Upcoming" />
-            {upcomingMatches.slice(0, 8).map(m => (
-              <MatchCard key={m.id} match={m}
-                isFavourite={favourites.has(m.id)}
-                onToggleFavourite={() => onToggleFavourite(m.id)}
-                onPress={() => onNavigate('match-details', m)} />
-            ))}
-          </>
-        )}
+                    onPress={() => onNavigate('match-details', m)}
+                  />
+                ))
+              }
+            </>
+          )}
 
-        {/* Quick Actions */}
-        <SectionHeader title="Quick Actions" />
-        <View style={s.quickGrid}>
-          {[
-            { label: 'Fixtures', icon: '📅', screen: 'fixtures' },
-            { label: 'Teams', icon: '⚽', screen: 'teams' },
-            { label: 'Standings', icon: '📊', screen: 'standings' },
-            { label: 'Favourites', icon: '⭐', screen: 'favourites' },
-            { label: 'News', icon: '📰', screen: 'news' },
-            { label: 'More', icon: '⚙️', screen: 'more' },
-          ].map(a => (
-            <TouchableOpacity key={a.label} style={s.quickBtn} onPress={() => onNavigate(a.screen as Screen)}>
-              <Text style={{ fontSize: 30, marginBottom: 6 }}>{a.icon}</Text>
-              <Text style={s.quickLabel}>{a.label}</Text>
+          {/* Today matches */}
+          {tab === 'today' && (
+            <>
+              {todayMatches.length === 0
+                ? <Text style={s.emptyHint}>No matches scheduled for today</Text>
+                : todayMatches.map(m => (
+                  <MatchCard
+                    key={m.id} match={m}
+                    isFavourite={favourites.has(m.id)}
+                    onToggleFavourite={() => onToggleFavourite(m.id)}
+                    onPress={() => onNavigate('match-details', m)}
+                  />
+                ))
+              }
+            </>
+          )}
+
+          {/* Tomorrow matches */}
+          {tab === 'tomorrow' && (
+            <>
+              {tomorrowMatches.length === 0
+                ? <Text style={s.emptyHint}>No matches scheduled for tomorrow</Text>
+                : tomorrowMatches.map(m => (
+                  <MatchCard
+                    key={m.id} match={m}
+                    isFavourite={favourites.has(m.id)}
+                    onToggleFavourite={() => onToggleFavourite(m.id)}
+                    onPress={() => onNavigate('match-details', m)}
+                  />
+                ))
+              }
+            </>
+          )}
+
+          {/* All matches */}
+          {tab === 'all' && (
+            <>
+              {liveMatches.length > 0 && (
+                <>
+                  <SectionHeader title="Live Now" />
+                  {liveMatches.map(m => (
+                    <MatchCard key={m.id} match={m}
+                      isFavourite={favourites.has(m.id)}
+                      onToggleFavourite={() => onToggleFavourite(m.id)}
+                      onPress={() => onNavigate('match-details', m)} />
+                  ))}
+                </>
+              )}
+              <SectionHeader title="Upcoming" />
+              {allMatches.filter(m => m.status !== 'finished').slice(0, 10).map(m => (
+                <MatchCard key={m.id} match={m}
+                  isFavourite={favourites.has(m.id)}
+                  onToggleFavourite={() => onToggleFavourite(m.id)}
+                  onPress={() => onNavigate('match-details', m)} />
+              ))}
+            </>
+          )}
+
+          {/* News Section */}
+          <View style={s.newsSection}>
+            <SectionHeader title="News" />
+            <TouchableOpacity onPress={() => onNavigate('news')}>
+              <Text style={s.newsViewAll}>View all</Text>
             </TouchableOpacity>
+          </View>
+          {NEWS.filter(n => n.featured).slice(0, 1).map(n => (
+            <NewsFeedCard key={n.id} article={n} featured />
+          ))}
+          {NEWS.filter(n => !n.featured).slice(0, 2).map(n => (
+            <NewsFeedCard key={n.id} article={n} />
           ))}
         </View>
 
         <View style={{ height: 24 }} />
-      </View>
-    </ScrollView>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -173,37 +210,11 @@ export default function HomeScreen({ onNavigate, favourites, onToggleFavourite, 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   inner: { padding: 16 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  welcomeText: { color: C.textSecondary, fontSize: 13 },
-  headerTitle: { color: C.textPrimary, fontSize: 22, fontWeight: '800' },
-  headerIcons: { flexDirection: 'row', gap: 8 },
-  iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
-  heroCard: {
-    backgroundColor: C.card,
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: C.accent,
-    overflow: 'hidden',
-    position: 'relative',
+  matchCount: { color: C.textSecondary, fontSize: 12, fontWeight: '500', marginBottom: 12 },
+  emptyHint: { color: C.textSecondary, fontSize: 14, textAlign: 'center', paddingVertical: 32 },
+  newsSection: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginTop: 8, marginBottom: 4,
   },
-  heroCircle1: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: C.accent + '15', top: -30, right: -30 },
-  heroCircle2: { position: 'absolute', width: 80, height: 80, borderRadius: 40, backgroundColor: C.accent + '10', bottom: -20, left: -20 },
-  heroTitle: { color: C.textPrimary, fontSize: 18, fontWeight: '800', marginBottom: 4 },
-  heroSub: { color: C.textSecondary, fontSize: 13, marginBottom: 14 },
-  heroBtn: { backgroundColor: C.accent, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 20, alignSelf: 'flex-start' },
-  heroBtnText: { color: C.bg, fontSize: 13, fontWeight: '700' },
-  emptyHint: { color: C.textSecondary, fontSize: 14, textAlign: 'center', paddingVertical: 24 },
-  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 8 },
-  quickBtn: {
-    width: '47%',
-    backgroundColor: C.card,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-    alignItems: 'flex-start',
-  },
-  quickLabel: { color: C.textPrimary, fontSize: 14, fontWeight: '600' },
+  newsViewAll: { color: C.accent, fontSize: 13, fontWeight: '600' },
 });

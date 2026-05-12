@@ -8,6 +8,48 @@ const api = axios.create({
   headers: { Authorization: `Token ${BSD.TOKEN}` },
 });
 
+// ─── Country → Flag Emoji ─────────────────────────────────────────────────────
+
+function countryToFlag(country: string): string | undefined {
+  const map: Record<string, string> = {
+    'England': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+    'Spain': '🇪🇸',
+    'Germany': '🇩🇪',
+    'Italy': '🇮🇹',
+    'France': '🇫🇷',
+    'Portugal': '🇵🇹',
+    'Netherlands': '🇳🇱',
+    'Belgium': '🇧🇪',
+    'Brazil': '🇧🇷',
+    'Argentina': '🇦🇷',
+    'USA': '🇺🇸',
+    'Canada': '🇨🇦',
+    'Mexico': '🇲🇽',
+    'Scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+    'Wales': '🏴󠁧󠁢󠁷󠁬󠁳󠁿',
+    'Ireland': '🇮🇪',
+    'Switzerland': '🇨🇭',
+    'Austria': '🇦🇹',
+    'Sweden': '🇸🇪',
+    'Norway': '🇳🇴',
+    'Denmark': '🇩🇰',
+    'Poland': '🇵🇱',
+    'Ukraine': '🇺🇦',
+    'Russia': '🇷🇺',
+    'Turkey': '🇹🇷',
+    'Greece': '🇬🇷',
+    'Croatia': '🇭🇷',
+    'Czech Republic': '🇨🇿',
+    'Serbia': '🇷🇸',
+    'Japan': '🇯🇵',
+    'South Korea': '🇰🇷',
+    'Australia': '🇦🇺',
+    'Saudi Arabia': '🇸🇦',
+    'Europe': '🏆',
+  };
+  return map[country];
+}
+
 // ─── BSD Event → Match mapping ────────────────────────────────────────────────
 
 type BSDStatus =
@@ -45,6 +87,7 @@ function resolveStatus(status: BSDStatus): MatchStatus {
     case '2nd_half':
     case 'extratime':
     case 'penalties':
+    case 'inprogress':
       return 'live';
     case 'finished':
     case 'aet':
@@ -123,7 +166,7 @@ function toTeam(t: BSDTeam): Team {
   return {
     id: String(t.id),
     name: t.name,
-    badge: '',
+    badge: countryToFlag(t.country) ?? '',
     league: '',
     country: t.country,
   };
@@ -192,6 +235,41 @@ export const FEATURED_LEAGUES: League[] = [
   { id: '18', name: 'MLS', badge: undefined, country: 'USA' },
 ];
 
+// ─── Team country cache (name -> flag) ────────────────────────────────────────
+
+let teamFlagCache: Map<string, string> | null = null;
+let cachedLeagueTeamIds: Set<string> = new Set();
+
+async function ensureTeamFlagCache(leagueId: string): Promise<Map<string, string>> {
+  if (!teamFlagCache) teamFlagCache = new Map();
+  if (cachedLeagueTeamIds.has(leagueId)) return teamFlagCache;
+  cachedLeagueTeamIds.add(leagueId);
+  try {
+    const { data } = await api.get('/teams/', {
+      params: { league_id: leagueId, limit: 100 },
+    });
+    const list: BSDTeam[] = Array.isArray(data) ? data : data?.results ?? [];
+    for (const t of list) {
+      const flag = countryToFlag(t.country) ?? '⚽';
+      teamFlagCache.set(t.name.toLowerCase(), flag);
+      teamFlagCache.set(String(t.id), flag);
+    }
+  } catch {}
+  return teamFlagCache;
+}
+
+function enrichMatchFlags(matches: Match[], countryMap: Map<string, string>): Match[] {
+  return matches.map(m => ({
+    ...m,
+    homeBadge: countryMap.get(m.homeTeam.toLowerCase())
+      ?? countryMap.get(m.homeTeamId ?? '')
+      ?? countryToFlag(FEATURED_LEAGUES.find(l => l.name === m.league)?.country ?? ''),
+    awayBadge: countryMap.get(m.awayTeam.toLowerCase())
+      ?? countryMap.get(m.awayTeamId ?? '')
+      ?? countryToFlag(FEATURED_LEAGUES.find(l => l.name === m.league)?.country ?? ''),
+  }));
+}
+
 // ─── Events ───────────────────────────────────────────────────────────────────
 
 function extractEvents(data: any): BSDEvent[] {
@@ -205,10 +283,15 @@ async function mapEvents(data: any): Promise<Match[]> {
   return Promise.all(extractEvents(data).map(e => toMatch(e)));
 }
 
-export async function fetchLiveEvents(): Promise<Match[]> {
+export async function fetchLiveEvents(leagueId?: string): Promise<Match[]> {
   try {
     const { data } = await api.get('/events/live/');
-    return await mapEvents(data);
+    let events = extractEvents(data);
+    if (leagueId) {
+      const leagueNum = parseInt(leagueId, 10);
+      events = events.filter(e => e.league_id === leagueNum);
+    }
+    return Promise.all(events.map(e => toMatch(e)));
   } catch {
     return [];
   }
@@ -216,10 +299,12 @@ export async function fetchLiveEvents(): Promise<Match[]> {
 
 export async function fetchLeagueEvents(leagueId: string): Promise<Match[]> {
   try {
-    const { data } = await api.get('/events/', {
-      params: { league_id: leagueId, limit: 50 },
-    });
-    return await mapEvents(data);
+    const [eventsResp, _] = await Promise.all([
+      api.get('/events/', { params: { league_id: leagueId, limit: 50 } }),
+      ensureTeamFlagCache(leagueId),
+    ]);
+    const matches = await mapEvents(eventsResp.data);
+    return enrichMatchFlags(matches, teamFlagCache ?? new Map());
   } catch {
     return [];
   }
@@ -227,10 +312,14 @@ export async function fetchLeagueEvents(leagueId: string): Promise<Match[]> {
 
 export async function fetchNextEvents(leagueId: string): Promise<Match[]> {
   try {
-    const { data } = await api.get('/events/', {
-      params: { league_id: leagueId, status: 'notstarted', limit: 15 },
-    });
-    return await mapEvents(data);
+    const [eventsResp, _] = await Promise.all([
+      api.get('/events/', {
+        params: { league_id: leagueId, status: 'notstarted', limit: 15 },
+      }),
+      ensureTeamFlagCache(leagueId),
+    ]);
+    const matches = await mapEvents(eventsResp.data);
+    return enrichMatchFlags(matches, teamFlagCache ?? new Map());
   } catch {
     return [];
   }
@@ -238,10 +327,14 @@ export async function fetchNextEvents(leagueId: string): Promise<Match[]> {
 
 export async function fetchLastEvents(leagueId: string): Promise<Match[]> {
   try {
-    const { data } = await api.get('/events/', {
-      params: { league_id: leagueId, status: 'finished', limit: 15 },
-    });
-    return await mapEvents(data);
+    const [eventsResp, _] = await Promise.all([
+      api.get('/events/', {
+        params: { league_id: leagueId, status: 'finished', limit: 15 },
+      }),
+      ensureTeamFlagCache(leagueId),
+    ]);
+    const matches = await mapEvents(eventsResp.data);
+    return enrichMatchFlags(matches, teamFlagCache ?? new Map());
   } catch {
     return [];
   }
@@ -260,7 +353,12 @@ export async function fetchRecentResults(leagueId?: string): Promise<Match[]> {
     };
     if (leagueId) params.league_id = leagueId;
     const { data } = await api.get('/events/', { params });
-    return await mapEvents(data);
+    const matches = await mapEvents(data);
+    if (leagueId) {
+      await ensureTeamFlagCache(leagueId);
+      return enrichMatchFlags(matches, teamFlagCache ?? new Map());
+    }
+    return matches;
   } catch {
     return [];
   }
