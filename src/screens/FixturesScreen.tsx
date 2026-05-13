@@ -61,7 +61,7 @@ export default function FixturesScreen({ onNavigate, favourites, onToggleFavouri
         title="Fixtures"
         showBack
         onBackPress={() => navigation?.goBack()}
-        rightAction={{ icon: <HugeiconsIcon icon={File01Icon} size={16} color={C.textPrimary} />, onPress: () => onNavigate('results') }}
+        rightAction={{ icon: <HugeiconsIcon icon={File01Icon} size={18} color={C.textPrimary} />, onPress: () => onNavigate('results') }}
       />
       <ScrollView
         style={{ flex: 1, backgroundColor: C.bg }}

@@ -51,7 +51,7 @@ export default function MatchDetailsScreen({ onNavigate, matchData, favourites, 
         showBack={true}
         onBackPress={() => navigation?.goBack()}
         rightAction={{
-          icon: <HugeiconsIcon icon={StarIcon} size={16} color={isFav ? '#FFD700' : C.textSecondary} />,
+          icon: <HugeiconsIcon icon={StarIcon} size={18} color={isFav ? '#FFD700' : C.textSecondary} />,
           onPress: () => onToggleFavourite(match.id),
         }}
       />

@@ -1,6 +1,6 @@
 // ─── Colours (matches your Figma design exactly) ─────────────────────────────
 export const C = {
-  bg: '#07111F',
+  bg: '#1C1B23',
   card: '#101C2E',
   cardAlt: '#16243A',
   border: '#26364F',

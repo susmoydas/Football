@@ -18,7 +18,7 @@ export default function NewsArticleScreen({ route, navigation }: Props) {
   if (!article) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
-        <Header title="News" showBack onBackPress={() => navigation?.goBack()} rightAction={{ icon: <HugeiconsIcon icon={StarIcon} size={16} color="#FFD700" />, onPress: () => navigation?.navigate('Favourites') }} />
+        <Header title="News" showBack onBackPress={() => navigation?.goBack()} rightAction={{ icon: <HugeiconsIcon icon={StarIcon} size={18} color="#FFD700" />, onPress: () => navigation?.navigate('Favourites') }} />
         <View style={s.errorContainer}>
           <Text style={s.errorText}>Article not found</Text>
         </View>
@@ -28,7 +28,7 @@ export default function NewsArticleScreen({ route, navigation }: Props) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
-      <Header title="News" showBack onBackPress={() => navigation?.goBack()} rightAction={{ icon: <HugeiconsIcon icon={StarIcon} size={16} color="#FFD700" />, onPress: () => navigation?.navigate('Favourites') }} />
+      <Header title="News" showBack onBackPress={() => navigation?.goBack()} rightAction={{ icon: <HugeiconsIcon icon={StarIcon} size={18} color="#FFD700" />, onPress: () => navigation?.navigate('Favourites') }} />
       <ScrollView
         style={{ flex: 1, backgroundColor: C.bg }}
         showsVerticalScrollIndicator={false}

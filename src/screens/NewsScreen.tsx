@@ -58,7 +58,7 @@ export default function NewsScreen({ navigation }: Props) {
         showBack
         onBackPress={() => navigation?.goBack()}
         rightAction={{
-          icon: <HugeiconsIcon icon={StarIcon} size={16} color="#FFD700" />,
+          icon: <HugeiconsIcon icon={StarIcon} size={18} color="#FFD700" />,
           onPress: () => navigation?.navigate('Favourites'),
         }}
       />

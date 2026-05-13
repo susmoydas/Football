@@ -49,7 +49,7 @@ export default function ResultsScreen({ onNavigate, selectedLeagueId, navigation
         title="Results"
         showBack={true}
         onBackPress={() => navigation?.goBack()}
-        rightAction={{ icon: <HugeiconsIcon icon={StarIcon} size={16} color="#FFD700" />, onPress: () => navigation?.navigate('Home', { screen: 'Favourites' }) }}
+        rightAction={{ icon: <HugeiconsIcon icon={StarIcon} size={18} color="#FFD700" />, onPress: () => navigation?.navigate('Home', { screen: 'Favourites' }) }}
       />
 
       <ScrollView

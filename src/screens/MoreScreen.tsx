@@ -74,7 +74,7 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange, navigatio
         title="Settings"
         showBack
         onBackPress={() => navigation?.goBack()}
-        rightAction={{ icon: <HugeiconsIcon icon={StarIcon} size={16} color="#FFD700" />, onPress: () => navigation?.navigate('Home', { screen: 'Favourites' }) }}
+        rightAction={{ icon: <HugeiconsIcon icon={StarIcon} size={18} color="#FFD700" />, onPress: () => navigation?.navigate('Home', { screen: 'Favourites' }) }}
       />
       <ScrollView style={{ flex: 1, backgroundColor: C.bg }} showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
       {/* Profile card */}
@@ -124,7 +124,7 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange, navigatio
         <View style={s.settingRow}>
           <View style={s.settingLeft}>
             <View style={[s.settingIcon, { backgroundColor: C.accent + '20' }]}>
-              <HugeiconsIcon icon={Notification02Icon} size={16} color={C.accent} />
+              <HugeiconsIcon icon={Notification02Icon} size={18} color={C.accent} />
             </View>
             <View>
               <Text style={s.settingTitle}>Enable Notifications</Text>
@@ -144,7 +144,7 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange, navigatio
             <View style={[s.settingRow, { borderTopWidth: 1, borderTopColor: C.border }]}>
               <View style={s.settingLeft}>
                 <View style={[s.settingIcon, { backgroundColor: C.gold + '20' }]}>
-                  <HugeiconsIcon icon={Calendar03Icon} size={16} color={C.gold} />
+                  <HugeiconsIcon icon={Calendar03Icon} size={18} color={C.gold} />
                 </View>
                 <Text style={s.settingTitle}>Match Today</Text>
               </View>
@@ -159,7 +159,7 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange, navigatio
             <View style={[s.settingRow, { borderTopWidth: 1, borderTopColor: C.border }]}>
               <View style={s.settingLeft}>
                 <View style={[s.settingIcon, { backgroundColor: C.red + '20' }]}>
-                  <HugeiconsIcon icon={FootballIcon} size={16} color={C.red} />
+                  <HugeiconsIcon icon={FootballIcon} size={18} color={C.red} />
                 </View>
                 <Text style={s.settingTitle}>Match Running</Text>
               </View>
@@ -174,7 +174,7 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange, navigatio
             <View style={[s.settingRow, { borderTopWidth: 1, borderTopColor: C.border }]}>
               <View style={s.settingLeft}>
                 <View style={[s.settingIcon, { backgroundColor: C.gold + '20' }]}>
-                  <HugeiconsIcon icon={CheckmarkCircle01Icon} size={16} color={C.gold} />
+                  <HugeiconsIcon icon={CheckmarkCircle01Icon} size={18} color={C.gold} />
                 </View>
                 <Text style={s.settingTitle}>Match Done</Text>
               </View>
@@ -204,7 +204,7 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange, navigatio
             <View style={s.settingLeft}>
               <View style={[s.settingIcon, { backgroundColor: item.color + '20' }]}>
                 {item.icon === 'star' ? (
-                  <HugeiconsIcon icon={StarIcon} size={16} color={item.color} />
+                  <HugeiconsIcon icon={StarIcon} size={18} color={item.color} />
                 ) : (
                   <Text style={{ fontSize: 16 }}>{item.icon}</Text>
                 )}

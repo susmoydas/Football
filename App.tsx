@@ -1,17 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
+import { StatusBar, Platform } from 'react-native';
+import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { Box } from '@/components/ui/box';
+import { HStack } from '@/components/ui/hstack';
+import { Text } from '@/components/ui/text';
+import { Pressable } from '@/components/ui/pressable';
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { Home01Icon, Calendar03Icon, UserGroupIcon, ChartIcon, MoreHorizontalIcon } from '@hugeicons/core-free-icons';
-import { C, Screen, Match, Team } from './src/types';
+import { Screen, Match, Team } from './src/types';
 import { getFavMatches, getFavTeams, toggleFavMatch, toggleFavTeam, getSelectedLeague } from './src/services/storage';
 import { setupNotificationHandler } from './src/services/notifications';
 
-// Screens
 import SplashScreen from './src/screens/SplashScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import FixturesScreen from './src/screens/FixturesScreen';
@@ -23,6 +27,8 @@ import ResultsScreen from './src/screens/ResultsScreen';
 import MoreScreen from './src/screens/MoreScreen';
 import NewsScreen from './src/screens/NewsScreen';
 import NewsArticleScreen from './src/screens/NewsArticleScreen';
+
+import './global.css';
 
 const queryClient = new QueryClient();
 const Tab = createBottomTabNavigator();
@@ -39,24 +45,24 @@ const NAV_ITEMS: { id: string; icon: any; label: string }[] = [
 function BottomNav({ state, navigation }: { state: any; navigation: any }) {
   const active = state.routes[state.index].name;
   return (
-    <SafeAreaView style={nav.safe} edges={['bottom']}>
-      <View style={nav.bar}>
+    <Box className="bg-background-0 border-t border-success-500/20 px-1 pt-1.5" style={{ paddingBottom: Platform.OS === 'ios' ? 20 : 8 }}>
+      <HStack className="items-center">
         {NAV_ITEMS.map(item => {
           const isActive = active === item.id;
           return (
-            <TouchableOpacity
+            <Pressable
               key={item.id}
-              style={[nav.item, isActive && nav.itemActive]}
+              className="flex-1 items-center py-0.5 relative"
               onPress={() => navigation.navigate(item.id)}
             >
-          <View style={[nav.indicator, isActive && nav.indicatorActive]} />
-          <HugeiconsIcon icon={item.icon} size={20} color={isActive ? C.accent : C.textSecondary} />
-          <Text style={[nav.label, isActive && { color: C.accent }]}>{item.label}</Text>
-            </TouchableOpacity>
+              <Box className={`absolute -top-1.5 left-[25%] right-[25%] h-[2px] rounded-sm ${isActive ? 'bg-success-500' : 'bg-transparent'}`} />
+              <HugeiconsIcon icon={item.icon} size={22} color={isActive ? '#20C997' : '#A9B4C2'} />
+              <Text className={`text-[10px] font-semibold mt-0.5 ${isActive ? 'text-success-500' : 'text-typography-500'}`}>{item.label}</Text>
+            </Pressable>
           );
         })}
-      </View>
-    </SafeAreaView>
+      </HStack>
+    </Box>
   );
 }
 
@@ -291,56 +297,32 @@ export default function App() {
   if (showSplash) {
     return (
       <QueryClientProvider client={queryClient}>
-        <StatusBar barStyle="light-content" backgroundColor={C.bg} />
+        <StatusBar barStyle="light-content" backgroundColor="#1C1B23" />
         <SplashScreen onFinish={() => setShowSplash(false)} />
       </QueryClientProvider>
     );
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <SafeAreaProvider>
-        <StatusBar barStyle="light-content" backgroundColor={C.bg} />
-        <NavigationContainer>
-          <SafeAreaView style={app.safe} edges={['top', 'bottom']}>
-            <MainTabs
-              favourites={favouriteIds}
-              onToggleFavourite={handleToggleFavourite}
-              selectedLeagueId={selectedLeagueId}
-              allMatches={allMatches}
-              allTeams={allTeams}
-              onLeagueChange={setSelectedLeagueId}
-            />
-          </SafeAreaView>
-        </NavigationContainer>
-      </SafeAreaProvider>
-    </QueryClientProvider>
+    <GluestackUIProvider mode="dark">
+      <QueryClientProvider client={queryClient}>
+        <SafeAreaProvider>
+          <StatusBar barStyle="light-content" backgroundColor="#1C1B23" />
+          <NavigationContainer>
+            <SafeAreaView style={{ flex: 1, backgroundColor: '#1C1B23' }} edges={['bottom']}>
+              <MainTabs
+                favourites={favouriteIds}
+                onToggleFavourite={handleToggleFavourite}
+                selectedLeagueId={selectedLeagueId}
+                allMatches={allMatches}
+                allTeams={allTeams}
+                onLeagueChange={setSelectedLeagueId}
+              />
+            </SafeAreaView>
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </QueryClientProvider>
+    </GluestackUIProvider>
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const app = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
-});
-
-const nav = StyleSheet.create({
-  safe: { backgroundColor: C.card },
-  bar: {
-    flexDirection: 'row',
-    backgroundColor: C.card,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
-  },
-  item: { flex: 1, alignItems: 'center', paddingVertical: 4, position: 'relative' },
-  itemActive: {},
-  indicator: {
-    position: 'absolute', top: -9, left: '20%', right: '20%', height: 3,
-    borderRadius: 2, backgroundColor: 'transparent',
-  },
-  indicatorActive: { backgroundColor: C.accent },
-  label: { color: C.textSecondary, fontSize: 10, fontWeight: '600' },
-});
