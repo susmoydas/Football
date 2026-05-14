@@ -40,11 +40,12 @@ function getInitials(name?: string): string {
 }
 
 export function TeamBadge({ uri, size = 40, name }: { uri?: string; size?: number; name?: string }) {
+  const [imgError, setImgError] = React.useState(false);
   const avatarSize = size <= 24 ? 'xs' : size <= 32 ? 'sm' : size <= 48 ? 'md' : size <= 64 ? 'lg' : 'xl';
-  if (uri && (uri.startsWith('http') || uri.startsWith('file') || uri.startsWith('data:'))) {
+  if (uri && (uri.startsWith('http') || uri.startsWith('file') || uri.startsWith('data:')) && !imgError) {
     return (
       <Avatar size={avatarSize} className={getTeamBgClass(name)}>
-        <AvatarImage source={{ uri }} />
+        <AvatarImage source={{ uri }} onError={() => setImgError(true)} />
       </Avatar>
     );
   }
@@ -155,8 +156,10 @@ export function TeamCard({ team, isFavourite, onToggleFavourite, onPress, listMo
           <TeamBadge uri={team.badgeUrl || team.badge} size={44} name={team.name} />
           <Box className="flex-1 ml-3">
             <Text size="sm" className="text-typography-0 font-semibold">{team.name}</Text>
-            {team.country && (
+            {team.country ? (
               <Text size="xs" className="text-typography-500 mt-0.5">{team.badge} {team.country}</Text>
+            ) : (
+              <Text size="xs" className="text-typography-500 mt-0.5">{team.badge}</Text>
             )}
           </Box>
           <Pressable onPress={onToggleFavourite} hitSlop={8}>
@@ -174,8 +177,10 @@ export function TeamCard({ team, isFavourite, onToggleFavourite, onPress, listMo
         </Pressable>
         <TeamBadge uri={team.badgeUrl || team.badge} size={56} name={team.name} />
         <Text size="sm" className="text-typography-0 font-semibold mt-2 text-center" numberOfLines={2}>{team.name}</Text>
-        {team.country && (
+        {team.country ? (
           <Text size="xs" className="text-typography-500 mt-0.5 text-center">{team.badge} {team.country}</Text>
+        ) : (
+          <Text size="xs" className="text-typography-500 mt-0.5 text-center">{team.badge}</Text>
         )}
       </Card>
     </Pressable>

@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { SPORTSDB } from '../config';
-import { Match, Team } from '../types';
+import { Team } from '../types';
 
 const api = axios.create({
   baseURL: `${SPORTSDB.BASE_URL}/${SPORTSDB.API_KEY}`,
@@ -50,43 +50,8 @@ async function searchTeamBadge(teamName: string): Promise<string | null> {
   return promise;
 }
 
-export function getCachedBadge(teamName: string): string | null | undefined {
-  return badgeCache.get(teamName.toLowerCase().trim());
-}
-
 export async function fetchTeamBadge(teamName: string): Promise<string | null> {
   return searchTeamBadge(teamName);
-}
-
-export async function enrichMatchesWithBadges(matches: Match[]): Promise<Match[]> {
-  const teamNames = new Set<string>();
-  for (const m of matches) {
-    if (m.homeTeam) teamNames.add(m.homeTeam);
-    if (m.awayTeam) teamNames.add(m.awayTeam);
-  }
-
-  const badges = new Map<string, string | null>();
-  const uncached = [...teamNames].filter(n => !badgeCache.has(n.toLowerCase().trim()));
-
-  // Fetch uncached badges in parallel batches
-  const concurrency = 5;
-  for (let i = 0; i < uncached.length; i += concurrency) {
-    await Promise.all(
-      uncached.slice(i, i + concurrency).map(n => searchTeamBadge(n))
-    );
-  }
-
-  // Collect all results
-  for (const name of teamNames) {
-    const key = name.toLowerCase().trim();
-    badges.set(key, badgeCache.get(key) ?? null);
-  }
-
-  return matches.map(m => ({
-    ...m,
-    homeBadge: badges.get(m.homeTeam?.toLowerCase().trim()) ?? m.homeBadge,
-    awayBadge: badges.get(m.awayTeam?.toLowerCase().trim()) ?? m.awayBadge,
-  }));
 }
 
 export async function enrichTeamWithBadge(team: Team): Promise<Team> {

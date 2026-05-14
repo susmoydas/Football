@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { Match, Team, Standing, League, MatchStatus } from '../types';
 import { BSD } from '../config';
-import { enrichMatchesWithBadges, enrichTeamsWithBadges, enrichTeamWithBadge } from './sportsdb';
+import { enrichTeamsWithBadges, enrichTeamWithBadge } from './sportsdb';
 
 const api = axios.create({
   baseURL: BSD.BASE_URL,
@@ -236,13 +236,6 @@ function toTeam(t: BSDTeam): Team {
   };
 }
 
-// ─── Finalize helpers — run all enrichment steps including TheSportsDB ────────
-
-async function finalizeMatches(matches: Match[]): Promise<Match[]> {
-  const enriched = enrichMatchFlags(matches, teamFlagCache ?? new Map());
-  return enrichMatchesWithBadges(enriched);
-}
-
 // ─── BSD League → League mapping ──────────────────────────────────────────────
 
 interface BSDLeague {
@@ -375,7 +368,7 @@ export async function fetchLiveEvents(leagueId?: string): Promise<Match[]> {
       await ensureTeamFlagCache(leagueId);
     }
     const matches = await Promise.all(events.map(e => toMatch(e)));
-    return finalizeMatches(matches);
+    return enrichMatchFlags(matches, teamFlagCache ?? new Map());
   } catch {
     return [];
   }
@@ -388,7 +381,7 @@ export async function fetchLeagueEvents(leagueId: string): Promise<Match[]> {
       ensureTeamFlagCache(leagueId),
     ]);
     const matches = await mapEvents(eventsResp.data);
-    return finalizeMatches(matches);
+    return enrichMatchFlags(matches, teamFlagCache ?? new Map());
   } catch {
     return [];
   }
@@ -403,7 +396,7 @@ export async function fetchNextEvents(leagueId: string): Promise<Match[]> {
       ensureTeamFlagCache(leagueId),
     ]);
     const matches = await mapEvents(eventsResp.data);
-    return finalizeMatches(matches);
+    return enrichMatchFlags(matches, teamFlagCache ?? new Map());
   } catch {
     return [];
   }
@@ -418,7 +411,7 @@ export async function fetchLastEvents(leagueId: string): Promise<Match[]> {
       ensureTeamFlagCache(leagueId),
     ]);
     const matches = await mapEvents(eventsResp.data);
-    return finalizeMatches(matches);
+    return enrichMatchFlags(matches, teamFlagCache ?? new Map());
   } catch {
     return [];
   }
@@ -440,7 +433,7 @@ export async function fetchRecentResults(leagueId?: string): Promise<Match[]> {
     const matches = await mapEvents(data);
     if (leagueId) {
       await ensureTeamFlagCache(leagueId);
-      return finalizeMatches(matches);
+      return enrichMatchFlags(matches, teamFlagCache ?? new Map());
     }
     return matches;
   } catch {
@@ -453,7 +446,7 @@ export async function fetchEvent(eventId: string): Promise<Match | null> {
     const { data } = await api.get(`/events/${eventId}/`);
     if (!data) return null;
     const match = await toMatch(data);
-    const enriched = await finalizeMatches([match]);
+    const enriched = enrichMatchFlags([match], teamFlagCache ?? new Map());
     return enriched[0] ?? null;
   } catch {
     return null;
