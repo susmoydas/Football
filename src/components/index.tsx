@@ -93,7 +93,7 @@ export function MatchCard({ match, onPress }: MatchCardProps) {
   const showScore = isLive || isFinished;
   return (
     <Pressable onPress={onPress}>
-      <Card size="sm" variant="outline" className="rounded-xl mb-2.5 px-4 pt-3 pb-1">
+      <Card size="sm" variant="elevated" className="rounded-xl mb-2.5 px-4 pt-3 pb-1 bg-background-50">
         {/* Header: league + status/time */}
         <HStack className="justify-between items-center mb-1">
           <Text size="2xs" className="text-typography-500 font-medium flex-1" numberOfLines={1}>{match.league}</Text>
@@ -122,7 +122,7 @@ export function MatchCard({ match, onPress }: MatchCardProps) {
         </HStack>
 
         {/* Away team */}
-        <HStack className="items-center py-2.5 border-t" style={{ borderTopColor: '#26364F' }}>
+        <HStack className="items-center py-2.5">
           <TeamBadge uri={match.awayBadge} size={36} name={match.awayTeam} />
           <Text size="sm" className="text-typography-0 font-semibold flex-1 ml-3" numberOfLines={1}>{match.awayTeam}</Text>
           {showScore ? (

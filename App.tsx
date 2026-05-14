@@ -45,7 +45,7 @@ const NAV_ITEMS: { id: string; icon: any; label: string }[] = [
 function BottomNav({ state, navigation }: { state: any; navigation: any }) {
   const active = state.routes[state.index].name;
   return (
-    <Box className="bg-background-0 border-t border-background-900 px-1 pt-1" style={{ paddingBottom: Platform.OS === 'ios' ? 20 : 8 }}>
+    <Box className="bg-background-0 px-1 pt-1" style={{ paddingBottom: Platform.OS === 'ios' ? 20 : 8 }}>
       <HStack className="items-center">
         {NAV_ITEMS.map(item => {
           const isActive = active === item.id;
