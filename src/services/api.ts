@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { Match, Team, Standing, League, MatchStatus } from '../types';
 import { BSD } from '../config';
-import { enrichTeamsWithBadges, enrichTeamWithBadge } from './sportsdb';
+import { enrichTeamsWithBadges as enrichWithSportsDb, enrichTeamWithBadge as enrichTeamWithSportsDb } from './sportsdb';
+import { enrichTeamsWithBadges as enrichWithApiFootball, enrichTeamWithBadge as enrichTeamWithApiFootball } from './apiFootball';
 
 const api = axios.create({
   baseURL: BSD.BASE_URL,
@@ -466,7 +467,9 @@ export async function fetchTeamsByLeague(leagueId: string): Promise<Team[]> {
     const { data } = await api.get('/teams/', {
       params: { league_id: leagueId, limit: 50 },
     });
-    return enrichTeamsWithBadges(extractTeams(data).map(toTeam));
+    const teams = extractTeams(data).map(toTeam);
+    const withSports = await enrichWithSportsDb(teams);
+    return enrichWithApiFootball(withSports, leagueId);
   } catch {
     return [];
   }
@@ -475,7 +478,10 @@ export async function fetchTeamsByLeague(leagueId: string): Promise<Team[]> {
 export async function fetchTeam(teamId: string): Promise<Team | null> {
   try {
     const { data } = await api.get(`/teams/${teamId}/`);
-    return data ? enrichTeamWithBadge(toTeam(data)) : null;
+    if (!data) return null;
+    const team = toTeam(data);
+    const withSports = await enrichTeamWithSportsDb(team);
+    return enrichTeamWithApiFootball(withSports);
   } catch {
     return null;
   }

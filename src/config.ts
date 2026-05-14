@@ -8,3 +8,8 @@ export const SPORTSDB = {
   // Get your free API key at https://www.thesportsdb.com/free_api
   API_KEY: '3',
 };
+
+export const API_FOOTBALL = {
+  BASE_URL: 'https://v3.football.api-sports.io',
+  API_KEY: process.env.EXPO_PUBLIC_API_FOOTBALL_KEY || '',
+};

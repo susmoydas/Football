@@ -8,6 +8,7 @@
 - APIs:
   - BSD (`src/config.ts` — base URL + hardcoded token), `@tanstack/react-query`
   - TheSportsDB (`src/config.ts` — v1 JSON, test key `3`, get own at thesportsdb.com)
+  - API-Football (`src/config.ts` — v3, needs `EXPO_PUBLIC_API_FOOTBALL_KEY` env var)
 - Icons: `@hugeicons/react-native` (all bumped +2px from original)
 - Storage: `@react-native-async-storage/async-storage` for favourites + settings
 
@@ -30,9 +31,10 @@ src/
   services/
     api.ts          # BSD client: fetch matches/teams/leagues/standings
     sportsdb.ts     # TheSportsDB client: search team badges by name, in-memory cache
+    apiFootball.ts  # API-Football client: fetch team logo URLs + country data by league
     storage.ts      # AsyncStorage wrapper for favourites/settings/notifications
   types/index.ts    # C (colors), Match, Team (has badgeUrl), Standing, League, etc.
-  config.ts         # BSD.BASE_URL + BSD.TOKEN + SPORTSDB.BASE_URL + SPORTSDB.API_KEY
+  config.ts         # BSD + SPORTSDB + API_FOOTBALL config
 ```
 
 ## Key Conventions
@@ -53,9 +55,19 @@ src/
 - Endpoint: `searchteams.php?t={teamName}` — searches by team name, prefers Soccer results
 - Cache: in-memory `Map<teamName, badgeUrl|null>`, deduped in-flight requests
 - Concurrent fetching: 5 parallel requests per batch
-- Enrichment: all match/team fetch functions in `api.ts` run SportsDB enrichment after initial BSD data load
+- Enrichment: all team fetch functions in `api.ts` run SportsDB enrichment after initial BSD data load
 - `Team.badgeUrl` added to types for crest URL storage (separate from `Team.badge` flag emoji)
 - If SportsDB has no match → falls back to country flag → colored initials
+
+## API-Football Integration
+- File: `src/services/apiFootball.ts`
+- Endpoint: `teams?league={id}&season={year}` — fetches ALL teams for a league in 1 call (much faster than per-team lookups)
+- League ID mapping: BSD league ID → API-Football league ID (top 10 leagues + World Cup mapped)
+- Auth: `x-rapidapi-key` header; set `EXPO_PUBLIC_API_FOOTBALL_KEY` env var
+- Signs up at api-football.com for free key (100 req/day)
+- Cache: in-memory `Map<teamName, logoUrl>`, skips already-fetched leagues
+- Priority chain: API-Football logo → SportsDB badge → country flag → colored initials
+- API-Football takes precedence over SportsDB because it returns reliable logo URLs
 
 ## Gotchas
 - Screens are legacy StyleSheet — they import updated gluestack components but internally use `C.*` + `react-native` View/Text
