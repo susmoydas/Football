@@ -215,7 +215,7 @@ function MoreStack({ selectedLeagueId, onLeagueChange }: { selectedLeagueId: str
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MoreMain">
-        {({ navigation }) => <MoreScreen selectedLeagueId={selectedLeagueId} onLeagueChange={onLeagueChange} navigation={navigation} />}
+        {() => <MoreScreen selectedLeagueId={selectedLeagueId} onLeagueChange={onLeagueChange} />}
       </Stack.Screen>
     </Stack.Navigator>
   );

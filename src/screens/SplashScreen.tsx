@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { C } from '../types';
+import { AppLogo } from '../components';
 
 interface Props { onFinish: () => void; }
 
@@ -28,9 +29,9 @@ export default function SplashScreen({ onFinish }: Props) {
   return (
     <View style={s.container}>
       <View style={s.iconBox}>
-        <Text style={s.iconEmoji}>⚽</Text>
+        <AppLogo size={64} />
       </View>
-      <Text style={s.title}>Football 2026 Code</Text>
+      <Text style={s.title}>Football 2026</Text>
       <Text style={s.subtitle}>Live scores, fixtures & football updates</Text>
       <View style={s.dots}>
         {[dot1, dot2, dot3].map((d, i) => (

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Image, ImageBackground, Platform } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { Image, ImageBackground, Animated, Platform } from 'react-native';
 
 import Svg, { Path, Circle, G, Defs, ClipPath, Rect } from 'react-native-svg';
 import { HugeiconsIcon } from '@hugeicons/react-native';
@@ -82,6 +82,19 @@ export function MatchCard({ match, onPress }: MatchCardProps) {
   const isLive = match.status === 'live';
   const isFinished = match.status === 'finished';
   const showScore = isLive || isFinished;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!isLive) return;
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 0.3, duration: 600, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [isLive, pulseAnim]);
 
   const formattedDate = match.date
     ? new Date(match.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
@@ -154,7 +167,9 @@ export function MatchCard({ match, onPress }: MatchCardProps) {
         <HStack className="items-center justify-center">
           {isLive ? (
             <>
-              <Box className="w-2 h-2 rounded-full bg-success-500 mr-1.5" />
+              <Animated.View style={{ opacity: pulseAnim }}>
+                <Box className="w-2 h-2 rounded-full bg-success-500 mr-1.5" />
+              </Animated.View>
               <Text size="xs" className="text-success-500 font-bold">LIVE</Text>
               {match.progress && (
                 <Text size="xs" className="text-typography-500 font-medium ml-1">{match.progress}'</Text>
