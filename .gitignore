@@ -2,3 +2,5 @@ node_modules
 .expo/
 *.local.*
 dist/
+android/app/build/
+.DS_Store

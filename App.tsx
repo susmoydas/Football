@@ -52,7 +52,7 @@ const NAV_ITEMS: { id: string; icon: any; label: string }[] = [
 function BottomNav({ state, navigation }: { state: any; navigation: any }) {
   const active = state.routes[state.index].name;
   return (
-    <Box className="bg-background-0" style={{ paddingTop: 4, paddingBottom: Platform.OS === 'ios' ? 8 : 4 }}>
+    <Box className="bg-background-0" style={{ paddingTop: 0, paddingBottom: Platform.OS === 'ios' ? 4 : 2 }}>
       <HStack className="items-start justify-around">
         {NAV_ITEMS.map(item => {
           const isActive = active === item.id;
@@ -60,23 +60,23 @@ function BottomNav({ state, navigation }: { state: any; navigation: any }) {
             <Pressable
               key={item.id}
               className="items-center"
-              style={{ width: 56 }}
+              style={{ width: 60 }}
               onPress={() => navigation.navigate(item.id)}
             >
               <Box
                 className="items-center justify-center"
                 style={{
                   width: 40,
-                  height: 32,
+                  height: 30,
                   borderRadius: 10,
                   backgroundColor: isActive ? '#0D9F68' + '15' : 'transparent',
                 }}
               >
-                <HugeiconsIcon icon={item.icon} size={22} color={isActive ? '#0D9F68' : '#5A5A6E'} />
+                <HugeiconsIcon icon={item.icon} size={24} color={isActive ? '#0D9F68' : '#5A5A6E'} />
               </Box>
               <Text
                 style={{
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: isActive ? '700' : '500',
                   color: isActive ? '#0D9F68' : '#5A5A6E',
                   marginTop: 3,
@@ -120,13 +120,14 @@ const buildNavigate = (navigation: any) => (screen: Screen | string, data?: any)
   }
 };
 
-function HomeStack({ selectedLeagueId }: { selectedLeagueId: string; }) {
+function HomeStack({ selectedLeagueId, onLeagueChange }: { selectedLeagueId: string; onLeagueChange: (id: string) => void; }) {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="HomeMain">
         {({ navigation }) => (
           <HomeScreen
             selectedLeagueId={selectedLeagueId}
+            onLeagueChange={onLeagueChange}
             onNavigate={buildNavigate(navigation)}
           />
         )}
@@ -228,6 +229,7 @@ function MainTabs({ selectedLeagueId, onLeagueChange }: { selectedLeagueId: stri
         {() => (
           <HomeStack
             selectedLeagueId={selectedLeagueId}
+            onLeagueChange={onLeagueChange}
           />
         )}
       </Tab.Screen>

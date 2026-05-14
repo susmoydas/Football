@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { HugeiconsIcon } from '@hugeicons/react-native';
+import { ArrowDown01Icon, ArrowUp01Icon } from '@hugeicons/core-free-icons';
 import { C, Match, Screen, NewsArticle } from '../types';
 import {
   fetchLiveEvents, fetchLeagueEvents, fetchNextEvents, fetchFootballNews,
+  FEATURED_LEAGUES,
 } from '../services/api';
 import {
   WorldCupBanner, MatchCard, FilterPill, SectionHeader, LoadingSpinner,
@@ -13,6 +16,7 @@ import {
 interface Props {
   onNavigate: (screen: Screen, data?: any) => void;
   selectedLeagueId: string;
+  onLeagueChange?: (id: string) => void;
 }
 
 type Tab = 'live' | 'today' | 'tomorrow' | 'all';
@@ -30,13 +34,17 @@ function isTomorrow(dateStr: string): boolean {
   return d.toDateString() === tomorrow.toDateString();
 }
 
-export default function HomeScreen({ onNavigate, selectedLeagueId }: Props) {
+export default function HomeScreen({ onNavigate, selectedLeagueId, onLeagueChange }: Props) {
   const [tab, setTab] = useState<Tab>('all');
   const [liveMatches, setLiveMatches] = useState<Match[]>([]);
   const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showLeagues, setShowLeagues] = useState(false);
+
+  const activeLeague = FEATURED_LEAGUES.find(l => l.id === selectedLeagueId);
+  const activeName = activeLeague?.name ?? 'Select League';
 
   function isPlaceholder(name: string): boolean {
     return /^[A-Z]\d+$/.test(name);
@@ -158,7 +166,28 @@ export default function HomeScreen({ onNavigate, selectedLeagueId }: Props) {
                   ))}
                 </>
               )}
-              <SectionHeader title="Upcoming" />
+              <SectionHeader
+                title="Upcoming"
+                rightContent={
+                  <TouchableOpacity style={s.leagueSelector} onPress={() => setShowLeagues(!showLeagues)}>
+                    <Text style={s.leagueSelectorText} numberOfLines={1}>{activeName}</Text>
+                    <HugeiconsIcon icon={showLeagues ? ArrowUp01Icon : ArrowDown01Icon} size={16} color={C.accent} />
+                  </TouchableOpacity>
+                }
+              />
+              {showLeagues && (
+                <View style={s.leagueDropdown}>
+                  {FEATURED_LEAGUES.map(l => (
+                    <TouchableOpacity
+                      key={l.id}
+                      style={[s.leagueItem, l.id === selectedLeagueId && { backgroundColor: C.accent + '20' }]}
+                      onPress={() => { onLeagueChange?.(l.id); setShowLeagues(false); }}
+                    >
+                      <Text style={[s.leagueItemText, l.id === selectedLeagueId && { color: C.accent, fontWeight: '700' }]}>{l.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
               {allMatches.filter(m => m.status !== 'finished').slice(0, 10).map(m => (
                 <MatchCard key={m.id} match={m}
                   onPress={() => onNavigate('match-details', m)} />
@@ -188,6 +217,18 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   inner: { padding: 16 },
   emptyHint: { color: C.textSecondary, fontSize: 14, textAlign: 'center', paddingVertical: 32 },
+  leagueSelector: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+  },
+  leagueSelectorText: { color: C.accent, fontSize: 13, fontWeight: '600', maxWidth: 140 },
+  leagueDropdown: {
+    backgroundColor: C.card, borderRadius: 12, marginBottom: 12, overflow: 'hidden',
+  },
+  leagueItem: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: 12, borderBottomWidth: 1, borderBottomColor: C.border,
+  },
+  leagueItemText: { color: C.textPrimary, fontSize: 13 },
   newsSection: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginTop: 8, marginBottom: 4,

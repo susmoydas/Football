@@ -194,6 +194,8 @@ module.exports = {
         },
       },
       fontFamily: {
+        body: ["Lexend", "sans-serif"],
+        heading: ["Lexend", "sans-serif"],
         roboto: ["Roboto", "sans-serif"],
       },
       fontWeight: {

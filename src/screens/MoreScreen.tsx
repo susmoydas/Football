@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Linking, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import { ChampionIcon, ArrowUp01Icon, ArrowDown01Icon, CheckmarkCircle01Icon, Notification02Icon, Calendar03Icon, FootballIcon } from '@hugeicons/core-free-icons';
+import { ArrowUp01Icon, ArrowDown01Icon, CheckmarkCircle01Icon, Notification02Icon, Calendar03Icon, FootballIcon } from '@hugeicons/core-free-icons';
 import { C, League } from '../types';
 import { saveSelectedLeague, NotificationSettings, getNotificationSettings, saveNotificationSettings } from '../services/storage';
 import { FEATURED_LEAGUES } from '../services/api';
@@ -74,16 +74,8 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange }: Props) 
 
       {/* League selection */}
       <Text style={s.sectionLabel}>Default League</Text>
-      <TouchableOpacity style={s.settingRow} onPress={() => setShowLeagues(!showLeagues)}>
-        <View style={s.settingLeft}>
-          <View style={[s.settingIcon, { backgroundColor: C.accent + '20' }]}>
-            <HugeiconsIcon icon={ChampionIcon} size={20} color={C.accent} />
-          </View>
-          <View>
-            <Text style={s.settingTitle}>League</Text>
-            <Text style={s.settingValue} numberOfLines={1}>{activeName}</Text>
-          </View>
-        </View>
+      <TouchableOpacity style={s.leagueRow} onPress={() => setShowLeagues(!showLeagues)}>
+        <Text style={s.leagueRowText}>{activeName}</Text>
         <HugeiconsIcon icon={showLeagues ? ArrowUp01Icon : ArrowDown01Icon} size={20} color={C.textSecondary} />
       </TouchableOpacity>
 
@@ -197,6 +189,8 @@ const s = StyleSheet.create({
   settingIcon: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   settingTitle: { color: C.textPrimary, fontSize: 15, fontWeight: '500' },
   settingValue: { color: C.textSecondary, fontSize: 12, marginTop: 2, maxWidth: 180 },
+  leagueRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.card, borderRadius: 16, padding: 16, marginBottom: 16 },
+  leagueRowText: { color: C.textPrimary, fontSize: 17, fontWeight: '600' },
   leagueList: { backgroundColor: C.card, borderRadius: 14, marginBottom: 16, overflow: 'hidden' },
   leagueItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, borderBottomWidth: 1, borderBottomColor: C.border },
   leagueItemText: { color: C.textPrimary, fontSize: 14 },

@@ -1,24 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { HugeiconsIcon } from '@hugeicons/react-native';
-import { File01Icon } from '@hugeicons/core-free-icons';
 import { C, Match, Screen } from '../types';
 import { fetchNextEvents, fetchLastEvents } from '../services/api';
-import { MatchCard, FilterPill, LoadingSpinner, EmptyState, Header } from '../components';
-import { checkAndNotifyMatches } from '../services/notifications';
+import { MatchCard, FilterPill, LoadingSpinner, EmptyState } from '../components';
 
 interface Props {
   onNavigate: (screen: Screen, data?: any) => void;
-  favourites: Set<string>;
-  onToggleFavourite: (id: string) => void;
   selectedLeagueId: string;
   navigation?: any;
 }
 
 type Filter = 'all' | 'upcoming' | 'finished' | 'live';
 
-export default function FixturesScreen({ onNavigate, favourites, onToggleFavourite, selectedLeagueId, navigation }: Props) {
+export default function FixturesScreen({ onNavigate, selectedLeagueId, navigation }: Props) {
   const [filter, setFilter] = useState<Filter>('all');
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +27,6 @@ export default function FixturesScreen({ onNavigate, favourites, onToggleFavouri
       ]);
       const all = [...past.reverse(), ...upcoming];
       setMatches(all);
-      checkAndNotifyMatches(all, favourites);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -55,12 +49,7 @@ export default function FixturesScreen({ onNavigate, favourites, onToggleFavouri
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
-      <Header
-        title="Fixtures"
-        showBack
-        onBackPress={() => navigation?.goBack()}
-        rightAction={{ icon: <HugeiconsIcon icon={File01Icon} size={18} color={C.textPrimary} />, onPress: () => onNavigate('results') }}
-      />
+      <View style={{ height: 8 }} />
       <ScrollView
         style={{ flex: 1, backgroundColor: C.bg }}
         showsVerticalScrollIndicator={false}

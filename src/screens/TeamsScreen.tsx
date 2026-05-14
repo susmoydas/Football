@@ -2,19 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import { Search01Icon, StarIcon } from '@hugeicons/core-free-icons';
+import { Search01Icon } from '@hugeicons/core-free-icons';
 import { C, Team } from '../types';
 import { fetchTeamsByLeague, FEATURED_LEAGUES } from '../services/api';
-import { TeamCard, LoadingSpinner, EmptyState, Header } from '../components';
+import { TeamCard, LoadingSpinner, EmptyState } from '../components';
 
 interface Props {
-  favourites: Set<string>;
-  onToggleFavourite: (id: string) => void;
   selectedLeagueId: string;
   navigation?: any;
 }
 
-export default function TeamsScreen({ favourites, onToggleFavourite, selectedLeagueId, navigation }: Props) {
+export default function TeamsScreen({ selectedLeagueId, navigation }: Props) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -35,16 +33,10 @@ export default function TeamsScreen({ favourites, onToggleFavourite, selectedLea
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
-      <Header
-        title="Teams"
-        showBack
-        onBackPress={() => navigation?.goBack()}
-        rightAction={{ icon: <HugeiconsIcon icon={StarIcon} size={18} color="#FFD700" />, onPress: () => navigation?.navigate('Home', { screen: 'Favourites' }) }}
-      />
       <View style={{ flex: 1, backgroundColor: C.bg }}>
       <View style={s.searchRow}>
         <View style={s.searchBox}>
-          <HugeiconsIcon icon={Search01Icon} size={18} color={C.textSecondary} style={{ marginRight: 8 }} />
+          <HugeiconsIcon icon={Search01Icon} size={24} color={C.textSecondary} style={{ marginRight: 8 }} />
           <TextInput
             style={s.searchInput}
             placeholder="Search team…"
@@ -66,10 +58,8 @@ export default function TeamsScreen({ favourites, onToggleFavourite, selectedLea
           columnWrapperStyle={{ gap: 10, marginBottom: 10 }}
           renderItem={({ item }) => (
             <TeamCard
-              team={item}
-              isFavourite={favourites.has(item.id)}
-              onToggleFavourite={() => onToggleFavourite(item.id)}
-            />
+                team={item}
+              />
           )}
         />
       )}
@@ -85,8 +75,7 @@ const s = StyleSheet.create({
   },
   searchBox: {
     flex: 1, flexDirection: 'row', alignItems: 'center',
-    backgroundColor: C.card, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10,
-    borderWidth: 1, borderColor: C.border,
+    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10,
   },
   searchInput: { flex: 1, color: C.textPrimary, fontSize: 14 },
 });

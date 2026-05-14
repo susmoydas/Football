@@ -31,7 +31,7 @@ export default function SplashScreen({ onFinish }: Props) {
       <View style={s.iconBox}>
         <AppLogo size={64} />
       </View>
-      <Text style={s.title}>Football 2026</Text>
+      <Text style={s.title}>Football</Text>
       <Text style={s.subtitle}>Live scores, fixtures & football updates</Text>
       <View style={s.dots}>
         {[dot1, dot2, dot3].map((d, i) => (

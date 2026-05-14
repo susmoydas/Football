@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { HugeiconsIcon } from '@hugeicons/react-native';
-import { StarIcon } from '@hugeicons/core-free-icons';
 import { C, Standing } from '../types';
 import { fetchStandings, FEATURED_LEAGUES } from '../services/api';
-import { StandingsTable, LoadingSpinner, EmptyState, Header } from '../components';
+import { StandingsTable, LoadingSpinner, EmptyState, FilterPill } from '../components';
 
 interface Props { selectedLeagueId: string; navigation?: any; }
 
@@ -38,12 +36,7 @@ export default function StandingsScreen({ selectedLeagueId, navigation }: Props)
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
-      <Header
-        title="Standings"
-        showBack
-        onBackPress={() => navigation?.goBack()}
-        rightAction={{ icon: <HugeiconsIcon icon={StarIcon} size={18} color="#FFD700" />, onPress: () => navigation?.navigate('Home', { screen: 'Favourites' }) }}
-      />
+      <View style={{ height: 8 }} />
       <ScrollView
         style={{ flex: 1, backgroundColor: C.bg }}
         showsVerticalScrollIndicator={false}
@@ -51,15 +44,12 @@ export default function StandingsScreen({ selectedLeagueId, navigation }: Props)
       >
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.leagueBar} contentContainerStyle={{ gap: 8, paddingRight: 16 }}>
         {FEATURED_LEAGUES.map(l => (
-          <TouchableOpacity
+          <FilterPill
             key={l.id}
-            style={[s.leagueChip, leagueId === l.id && { backgroundColor: C.accent }]}
+            label={l.name}
+            active={leagueId === l.id}
             onPress={() => { setLeagueId(l.id); setLoading(true); }}
-          >
-            <Text style={[s.leagueChipText, leagueId === l.id && { color: C.bg }]} numberOfLines={1}>
-              {l.name}
-            </Text>
-          </TouchableOpacity>
+          />
         ))}
       </ScrollView>
 
@@ -86,8 +76,7 @@ export default function StandingsScreen({ selectedLeagueId, navigation }: Props)
 
 const s = StyleSheet.create({
   leagueBar: { borderBottomWidth: 1, borderBottomColor: C.border, paddingVertical: 12, paddingLeft: 16 },
-  leagueChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, maxWidth: 160 },
-  leagueChipText: { color: C.textSecondary, fontSize: 12, fontWeight: '600' },
+
   seasonLabel: { color: C.textSecondary, fontSize: 13, marginBottom: 12, fontWeight: '600' },
   legend: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
   legendDot: { width: 12, height: 12, borderRadius: 6 },

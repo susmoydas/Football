@@ -53,8 +53,8 @@ export function TeamBadge({ uri, size = 44, name }: { uri?: string; size?: numbe
 export function StatusBadge({ status, progress }: { status: Match['status']; progress?: string }) {
   if (status === 'live') {
     return (
-      <Badge action="error" variant="solid" size="sm" className="bg-error-600">
-        <Box className="w-1.5 h-1.5 rounded-full bg-white mr-1" />
+      <Badge action="success" variant="solid" size="sm" className="bg-success-600">
+        <Box className="w-1.5 h-1.5 rounded-full bg-success-400 mr-1" />
         <BadgeText className="text-white font-bold">LIVE{progress ? ` ${progress}'` : ''}</BadgeText>
       </Badge>
     );
@@ -375,11 +375,12 @@ export function FilterPill({ label, active, onPress }: { label: string; active: 
   );
 }
 
-export function SectionHeader({ title }: { title: string }) {
+export function SectionHeader({ title, rightContent }: { title: string; rightContent?: React.ReactNode }) {
   return (
-    <Box className="mb-3">
+    <HStack className="items-center justify-between mb-3">
       <Heading size="lg" className="text-typography-0 font-bold">{title}</Heading>
-    </Box>
+      {rightContent}
+    </HStack>
   );
 }
 
