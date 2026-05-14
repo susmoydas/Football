@@ -67,7 +67,7 @@ export default function MatchDetailsScreen({ onNavigate, matchData, favourites, 
             </View>
             <View style={s.heroScoreWrap}>
               {hasScore ? (
-                <Text style={s.heroScore}>{match.homeScore ?? 0} – {match.awayScore ?? 0}</Text>
+                <Text style={s.heroScore}>{match.homeScore != null ? match.homeScore : '-'} – {match.awayScore != null ? match.awayScore : '-'}</Text>
               ) : (
                 <Text style={s.heroTime}>{match.time}</Text>
               )}

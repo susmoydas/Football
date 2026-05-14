@@ -90,6 +90,8 @@ export interface Match {
   awayTeamId?: string;
   homeBadge?: string;
   awayBadge?: string;
+  homeCountry?: string;
+  awayCountry?: string;
 }
 
 export interface Team {

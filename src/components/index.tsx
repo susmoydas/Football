@@ -39,7 +39,7 @@ function getInitials(name?: string): string {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
-export function TeamBadge({ uri, size = 40, name }: { uri?: string; size?: number; name?: string }) {
+export function TeamBadge({ uri, size = 40, name, fallbackText }: { uri?: string; size?: number; name?: string; fallbackText?: string }) {
   const [imgError, setImgError] = React.useState(false);
   const avatarSize = size <= 24 ? 'xs' : size <= 32 ? 'sm' : size <= 48 ? 'md' : size <= 64 ? 'lg' : 'xl';
   if (uri && (uri.startsWith('http') || uri.startsWith('file') || uri.startsWith('data:')) && !imgError) {
@@ -49,9 +49,10 @@ export function TeamBadge({ uri, size = 40, name }: { uri?: string; size?: numbe
       </Avatar>
     );
   }
+  const displayText = fallbackText || (uri && !uri.startsWith('http') ? uri : undefined) || getInitials(name);
   return (
     <Avatar size={avatarSize} className={getTeamBgClass(name)}>
-      <AvatarFallbackText>{getInitials(name)}</AvatarFallbackText>
+      <AvatarFallbackText>{displayText}</AvatarFallbackText>
     </Avatar>
   );
 }
@@ -110,7 +111,7 @@ export function MatchCard({ match, isFavourite, onToggleFavourite, onPress }: Ma
             <Text size="sm" className="text-typography-0 font-medium flex-1" numberOfLines={1}>{match.homeTeam}</Text>
             <Box className="min-w-[28px] items-end">
               {isLive || isFinished ? (
-                <Text size="xl" className={`font-bold ${isLive ? 'text-success-500' : 'text-typography-0'}`}>{match.homeScore ?? 0}</Text>
+                <Text size="xl" className={`font-bold ${isLive ? 'text-success-500' : 'text-typography-0'}`}>{match.homeScore != null ? match.homeScore : '-'}</Text>
               ) : null}
             </Box>
           </HStack>
@@ -124,7 +125,7 @@ export function MatchCard({ match, isFavourite, onToggleFavourite, onPress }: Ma
             <Text size="sm" className="text-typography-0 font-medium flex-1" numberOfLines={1}>{match.awayTeam}</Text>
             <Box className="min-w-[28px] items-end">
               {isLive || isFinished ? (
-                <Text size="xl" className={`font-bold ${isLive ? 'text-success-500' : 'text-typography-0'}`}>{match.awayScore ?? 0}</Text>
+                <Text size="xl" className={`font-bold ${isLive ? 'text-success-500' : 'text-typography-0'}`}>{match.awayScore != null ? match.awayScore : '-'}</Text>
               ) : null}
             </Box>
           </HStack>
@@ -153,7 +154,7 @@ export function TeamCard({ team, isFavourite, onToggleFavourite, onPress, listMo
     return (
       <Pressable onPress={onPress}>
         <Card size="sm" variant="outline" className="rounded-xl flex-row items-center mb-2">
-          <TeamBadge uri={team.badgeUrl || team.badge} size={44} name={team.name} />
+          <TeamBadge uri={team.badgeUrl || team.badge} size={44} name={team.name} fallbackText={team.badge} />
           <Box className="flex-1 ml-3">
             <Text size="sm" className="text-typography-0 font-semibold">{team.name}</Text>
             {team.country ? (
@@ -175,7 +176,7 @@ export function TeamCard({ team, isFavourite, onToggleFavourite, onPress, listMo
         <Pressable className="absolute top-2.5 right-2.5 p-1" onPress={onToggleFavourite}>
           <HugeiconsIcon icon={StarIcon} size={16} color={isFavourite ? '#FFD700' : '#A9B4C2'} />
         </Pressable>
-        <TeamBadge uri={team.badgeUrl || team.badge} size={56} name={team.name} />
+        <TeamBadge uri={team.badgeUrl || team.badge} size={56} name={team.name} fallbackText={team.badge} />
         <Text size="sm" className="text-typography-0 font-semibold mt-2 text-center" numberOfLines={2}>{team.name}</Text>
         {team.country ? (
           <Text size="xs" className="text-typography-500 mt-0.5 text-center">{team.badge} {team.country}</Text>

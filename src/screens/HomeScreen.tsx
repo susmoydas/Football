@@ -81,6 +81,10 @@ export default function HomeScreen({ onNavigate, favourites, onToggleFavourite, 
 
   const league = FEATURED_LEAGUES.find(l => l.id === selectedLeagueId) ?? FEATURED_LEAGUES[0];
 
+  function isPlaceholder(name: string): boolean {
+    return /^[A-Z]\d+$/.test(name);
+  }
+
   const load = async () => {
     try {
       const [live, all, next] = await Promise.all([
@@ -94,6 +98,7 @@ export default function HomeScreen({ onNavigate, favourites, onToggleFavourite, 
       const merged = [...live, ...all, ...next].filter(m => {
         if (seen.has(m.id)) return false;
         seen.add(m.id);
+        if (isPlaceholder(m.homeTeam) || isPlaceholder(m.awayTeam)) return false;
         return true;
       });
       setAllMatches(merged);

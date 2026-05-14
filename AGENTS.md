@@ -6,9 +6,7 @@
 - NativeWind v4 (Tailwind for RN), babel: `jsxImportSource: "nativewind"`
 - Navigation: `@react-navigation` bottom tabs + native stack (all `headerShown: false`)
 - APIs:
-  - BSD (`src/config.ts` — base URL + hardcoded token), `@tanstack/react-query`
-  - TheSportsDB (`src/config.ts` — v1 JSON, test key `3`, get own at thesportsdb.com)
-  - API-Football (`src/config.ts` — v3, needs `EXPO_PUBLIC_API_FOOTBALL_KEY` env var)
+  - BSD (`src/config.ts` — base URL + token), `@tanstack/react-query`
 - Icons: `@hugeicons/react-native` (all bumped +2px from original)
 - Storage: `@react-native-async-storage/async-storage` for favourites + settings
 
@@ -30,44 +28,24 @@ src/
     ui/             # gluestack-ui generated wrappers (do not edit)
   services/
     api.ts          # BSD client: fetch matches/teams/leagues/standings
-    sportsdb.ts     # TheSportsDB client: search team badges by name, in-memory cache
-    apiFootball.ts  # API-Football client: fetch team logo URLs + country data by league
     storage.ts      # AsyncStorage wrapper for favourites/settings/notifications
   types/index.ts    # C (colors), Match, Team (has badgeUrl), Standing, League, etc.
-  config.ts         # BSD + SPORTSDB + API_FOOTBALL config
+  config.ts         # BSD config
 ```
 
 ## Key Conventions
 - **Dark mode only**: `GluestackUIProvider mode="dark"`, bg `#1C1B23`
 - **Font sizes** bumped +2px: `2xs:12, xs:14, sm:16, base:18, lg:20, xl:22, 2xl:26, 3xl:32`
 - **Card border radius**: `rounded-xl` (12px) throughout
-- **Team badges** (two-step enrichment):
-  1. Country flag via `countryToFlag()` (case-insensitive, `'⚽'` fallback)
-  2. Real crest via TheSportsDB `searchteams.php?t={name}` (overwrites flag when found)
+- **Team badges** (flagsapi.com flag images via `getWorldCupFlagUrl()`, with flag emoji fallback):
+  1. Flag image: `getWorldCupFlagUrl(teamName)` → direct country name match → `teamCountryCache` → league country → `https://flagsapi.com/{code}/flat/64.png`
+  2. Fallback: flag emoji via `countryToFlag()` (case-insensitive, `'⚽'` fallback) then colored initials
+  3. Country→code map in `WORLD_CUP_FLAG_CODES` (comprehensive, 200+ entries), handles `" National Team"` suffix + first-word fallback
 - **Avatar fallback**: `getTeamBgClass(name)` — deterministic hash into 20 dark-safe gluestack tokens (no `bg-primary-*`) + `getInitials(name)` for initials text
 - **LinearGradient** (`expo-linear-gradient`): wrap in `Box` with `overflow-hidden` for border radius
-- **TeamBadge `uri`**: TeamCard passes `badgeUrl || badge`; MatchCard passes `homeBadge`/`awayBadge` (enriched to SportsDB URL or flag emoji)
+- **TeamBadge `uri`**: TeamCard passes `badgeUrl || badge` (`badgeUrl` = flagsapi.com URL per team country); MatchCard passes `homeBadge`/`awayBadge` (flagsapi.com URL or flag emoji)
 - **Icons**: all `HugeiconsIcon` sizes bumped +2px
 - **Nav routing**: `buildNavigate(navigation)` maps string screen names to routes; custom `BottomNav` (teal `#20C997` accent)
-
-## TheSportsDB Integration
-- File: `src/services/sportsdb.ts`
-- Endpoint: `searchteams.php?t={teamName}` — searches by team name, prefers Soccer results
-- Cache: in-memory `Map<teamName, badgeUrl|null>`, deduped in-flight requests
-- Concurrent fetching: 5 parallel requests per batch
-- Enrichment: all team fetch functions in `api.ts` run SportsDB enrichment after initial BSD data load
-- `Team.badgeUrl` added to types for crest URL storage (separate from `Team.badge` flag emoji)
-- If SportsDB has no match → falls back to country flag → colored initials
-
-## API-Football Integration
-- File: `src/services/apiFootball.ts`
-- Endpoint: `teams?league={id}&season={year}` — fetches ALL teams for a league in 1 call (much faster than per-team lookups)
-- League ID mapping: BSD league ID → API-Football league ID (top 10 leagues + World Cup mapped)
-- Auth: `x-rapidapi-key` header; set `EXPO_PUBLIC_API_FOOTBALL_KEY` env var
-- Signs up at api-football.com for free key (100 req/day)
-- Cache: in-memory `Map<teamName, logoUrl>`, skips already-fetched leagues
-- Priority chain: API-Football logo → SportsDB badge → country flag → colored initials
-- API-Football takes precedence over SportsDB because it returns reliable logo URLs
 
 ## Gotchas
 - Screens are legacy StyleSheet — they import updated gluestack components but internally use `C.*` + `react-native` View/Text
@@ -75,4 +53,5 @@ src/
 - `.npmrc` sets `legacy-peer-deps=true`
 - Path alias `@/` → `./src/*` (tsconfig.json + babel module-resolver)
 - gluestack-ui generated wrappers in `src/components/ui/` have pre-existing TS errors (ignore)
-- SportsDB test key `3` has limited data; replace with real key for full coverage
+- Node.js v26: Metro needs `--clear` flag every start (auto-set in `npm start` via package.json)
+

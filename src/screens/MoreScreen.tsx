@@ -194,7 +194,6 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange, navigatio
       <View style={s.card}>
         {[
           { icon: 'star', label: 'Clear Favourites', color: C.red, onPress: handleClearFavs },
-          { icon: 'web', label: 'TheSportsDB', color: C.accent, onPress: () => Linking.openURL('https://www.thesportsdb.com') },
         ].map((item, i, arr) => (
           <TouchableOpacity
             key={item.label}

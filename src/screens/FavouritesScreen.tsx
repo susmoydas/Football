@@ -76,7 +76,7 @@ export default function FavouritesScreen({ onNavigate, favourites, onToggleFavou
             : favTeams.map(t => (
               <View key={t.id} style={s.teamRow}>
                 <Text style={s.teamName}>{t.name}</Text>
-                <Text style={s.teamSub}>{t.country}</Text>
+                <Text style={s.teamSub}>{t.badge} {t.country}</Text>
                 <TouchableOpacity onPress={async () => { await toggleFavTeam(t.id); reload(); }}>
                   <Text style={s.removeText}>Remove</Text>
                 </TouchableOpacity>

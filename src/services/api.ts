@@ -1,8 +1,6 @@
 import axios from 'axios';
 import { Match, Team, Standing, League, MatchStatus } from '../types';
 import { BSD } from '../config';
-import { enrichTeamsWithBadges as enrichWithSportsDb, enrichTeamWithBadge as enrichTeamWithSportsDb } from './sportsdb';
-import { enrichTeamsWithBadges as enrichWithApiFootball, enrichTeamWithBadge as enrichTeamWithApiFootball } from './apiFootball';
 
 const api = axios.create({
   baseURL: BSD.BASE_URL,
@@ -12,7 +10,7 @@ const api = axios.create({
 
 // ─── Country → Flag Emoji ─────────────────────────────────────────────────────
 
-function countryToFlag(country: string): string {
+export function countryToFlag(country: string): string {
   const map: Record<string, string> = {
     'england': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
     'spain': '🇪🇸',
@@ -44,6 +42,7 @@ function countryToFlag(country: string): string {
     'ukraine': '🇺🇦',
     'russia': '🇷🇺',
     'turkey': '🇹🇷',
+    'türkiye': '🇹🇷',
     'greece': '🇬🇷',
     'croatia': '🇭🇷',
     'czech republic': '🇨🇿',
@@ -113,6 +112,256 @@ function countryToFlag(country: string): string {
     'great britain': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
   };
   return map[country.toLowerCase()] || '⚽';
+}
+
+// ─── flagsapi.com World Cup flag URLs ─────────────────────────────────────────
+
+const WORLD_CUP_FLAG_CODES: Record<string, string> = {
+  'afghanistan': 'AF',
+  'albania': 'AL',
+  'algeria': 'DZ',
+  'american samoa': 'AS',
+  'andorra': 'AD',
+  'angola': 'AO',
+  'anguilla': 'AI',
+  'antigua and barbuda': 'AG',
+  'argentina': 'AR',
+  'armenia': 'AM',
+  'aruba': 'AW',
+  'australia': 'AU',
+  'austria': 'AT',
+  'azerbaijan': 'AZ',
+  'bahamas': 'BS',
+  'bahrain': 'BH',
+  'bangladesh': 'BD',
+  'barbados': 'BB',
+  'belarus': 'BY',
+  'belgium': 'BE',
+  'belize': 'BZ',
+  'benin': 'BJ',
+  'bermuda': 'BM',
+  'bhutan': 'BT',
+  'bolivia': 'BO',
+  'bonaire': 'BQ',
+  'bosnia and herzegovina': 'BA',
+  'bosnia': 'BA',
+  'botswana': 'BW',
+  'brazil': 'BR',
+  'british virgin islands': 'VG',
+  'brunei': 'BN',
+  'bulgaria': 'BG',
+  'burkina faso': 'BF',
+  'burundi': 'BI',
+  'cambodia': 'KH',
+  'cameroon': 'CM',
+  'canada': 'CA',
+  'cape verde': 'CV',
+  'cayman islands': 'KY',
+  'central african republic': 'CF',
+  'chad': 'TD',
+  'chile': 'CL',
+  'china': 'CN',
+  'chinese taipei': 'TW',
+  'colombia': 'CO',
+  'comoros': 'KM',
+  'congo': 'CG',
+  'cook islands': 'CK',
+  'costa rica': 'CR',
+  'croatia': 'HR',
+  'cuba': 'CU',
+  'curacao': 'CW',
+  'cyprus': 'CY',
+  'czech republic': 'CZ',
+  'czechia': 'CZ',
+  'denmark': 'DK',
+  'djibouti': 'DJ',
+  'dominica': 'DM',
+  'dominican republic': 'DO',
+  'dr congo': 'CD',
+  'democratic republic of the congo': 'CD',
+  'ecuador': 'EC',
+  'egypt': 'EG',
+  'el salvador': 'SV',
+  'england': 'GB',
+  'equatorial guinea': 'GQ',
+  'eritrea': 'ER',
+  'estonia': 'EE',
+  'eswatini': 'SZ',
+  'ethiopia': 'ET',
+  'faroe islands': 'FO',
+  'fiji': 'FJ',
+  'finland': 'FI',
+  'france': 'FR',
+  'french guiana': 'GF',
+  'french polynesia': 'PF',
+  'gabon': 'GA',
+  'gambia': 'GM',
+  'the gambia': 'GM',
+  'georgia': 'GE',
+  'germany': 'DE',
+  'ghana': 'GH',
+  'gibraltar': 'GI',
+  'great britain': 'GB',
+  'greece': 'GR',
+  'grenada': 'GD',
+  'guadeloupe': 'GP',
+  'guam': 'GU',
+  'guatemala': 'GT',
+  'guinea': 'GN',
+  'guinea-bissau': 'GW',
+  'guyana': 'GY',
+  'haiti': 'HT',
+  'honduras': 'HN',
+  'hong kong': 'HK',
+  'hungary': 'HU',
+  'iceland': 'IS',
+  'india': 'IN',
+  'indonesia': 'ID',
+  'iran': 'IR',
+  'ir iran': 'IR',
+  'iraq': 'IQ',
+  'ireland': 'IE',
+  'republic of ireland': 'IE',
+  'israel': 'IL',
+  'italy': 'IT',
+  'ivory coast': 'CI',
+  "côte d'ivoire": 'CI',
+  'jamaica': 'JM',
+  'japan': 'JP',
+  'jordan': 'JO',
+  'kazakhstan': 'KZ',
+  'kenya': 'KE',
+  'kosovo': 'XK',
+  'kuwait': 'KW',
+  'kyrgyzstan': 'KG',
+  'laos': 'LA',
+  'latvia': 'LV',
+  'lebanon': 'LB',
+  'lesotho': 'LS',
+  'liberia': 'LR',
+  'libya': 'LY',
+  'liechtenstein': 'LI',
+  'lithuania': 'LT',
+  'luxembourg': 'LU',
+  'macau': 'MO',
+  'madagascar': 'MG',
+  'malawi': 'MW',
+  'malaysia': 'MY',
+  'maldives': 'MV',
+  'mali': 'ML',
+  'malta': 'MT',
+  'mauritania': 'MR',
+  'mauritius': 'MU',
+  'mexico': 'MX',
+  'moldova': 'MD',
+  'mongolia': 'MN',
+  'montenegro': 'ME',
+  'montserrat': 'MS',
+  'morocco': 'MA',
+  'mozambique': 'MZ',
+  'myanmar': 'MM',
+  'namibia': 'NA',
+  'nepal': 'NP',
+  'netherlands': 'NL',
+  'holland': 'NL',
+  'new caledonia': 'NC',
+  'new zealand': 'NZ',
+  'nicaragua': 'NI',
+  'niger': 'NE',
+  'nigeria': 'NG',
+  'north korea': 'KP',
+  'north macedonia': 'MK',
+  'macedonia': 'MK',
+  'northern ireland': 'GB',
+  'norway': 'NO',
+  'oman': 'OM',
+  'pakistan': 'PK',
+  'palestine': 'PS',
+  'panama': 'PA',
+  'papua new guinea': 'PG',
+  'paraguay': 'PY',
+  'peru': 'PE',
+  'philippines': 'PH',
+  'poland': 'PL',
+  'portugal': 'PT',
+  'puerto rico': 'PR',
+  'qatar': 'QA',
+  'romania': 'RO',
+  'russia': 'RU',
+  'rwanda': 'RW',
+  'samoa': 'WS',
+  'san marino': 'SM',
+  'sao tome and principe': 'ST',
+  'saudi arabia': 'SA',
+  'scotland': 'GB',
+  'senegal': 'SN',
+  'serbia': 'RS',
+  'seychelles': 'SC',
+  'sierra leone': 'SL',
+  'singapore': 'SG',
+  'slovakia': 'SK',
+  'slovenia': 'SI',
+  'solomon islands': 'SB',
+  'somalia': 'SO',
+  'south africa': 'ZA',
+  'south korea': 'KR',
+  'korea republic': 'KR',
+  'korea': 'KR',
+  'south sudan': 'SS',
+  'spain': 'ES',
+  'sri lanka': 'LK',
+  'st. kitts and nevis': 'KN',
+  'st. lucia': 'LC',
+  'st. martin': 'MF',
+  'st. vincent and the grenadines': 'VC',
+  'sudan': 'SD',
+  'suriname': 'SR',
+  'sweden': 'SE',
+  'switzerland': 'CH',
+  'syria': 'SY',
+  'tahiti': 'PF',
+  'tajikistan': 'TJ',
+  'tanzania': 'TZ',
+  'thailand': 'TH',
+  'timor-leste': 'TL',
+  'togo': 'TG',
+  'tonga': 'TO',
+  'trinidad and tobago': 'TT',
+  'tunisia': 'TN',
+  'turkey': 'TR',
+  'türkiye': 'TR',
+  'turkmenistan': 'TM',
+  'turks and caicos islands': 'TC',
+  'uganda': 'UG',
+  'ukraine': 'UA',
+  'united arab emirates': 'AE',
+  'uae': 'AE',
+  'uruguay': 'UY',
+  'usa': 'US',
+  'united states': 'US',
+  'united states of america': 'US',
+  'uzbekistan': 'UZ',
+  'vanuatu': 'VU',
+  'venezuela': 'VE',
+  'vietnam': 'VN',
+  'wales': 'GB',
+  'yemen': 'YE',
+  'zambia': 'ZM',
+  'zimbabwe': 'ZW',
+};
+
+function getWorldCupFlagUrl(teamName: string): string {
+  const key = teamName.toLowerCase().trim();
+  let code = WORLD_CUP_FLAG_CODES[key];
+  if (code) return `https://flagsapi.com/${code}/flat/64.png`;
+  const stripped = key.replace(/ national team$/, '').trim();
+  if (stripped !== key) {
+    code = WORLD_CUP_FLAG_CODES[stripped];
+    if (code) return `https://flagsapi.com/${code}/flat/64.png`;
+  }
+  code = WORLD_CUP_FLAG_CODES[key.split(' ')[0]];
+  if (code) return `https://flagsapi.com/${code}/flat/64.png`;
+  return '';
 }
 
 // ─── BSD Event → Match mapping ────────────────────────────────────────────────
@@ -194,7 +443,10 @@ async function getLeagueName(id: number | null): Promise<string> {
       }
     } catch {}
   }
-  return leagueNameCache.get(id) ?? String(id);
+  const cached = leagueNameCache.get(id);
+  if (cached) return cached;
+  const featured = FEATURED_LEAGUES.find(l => l.id === String(id));
+  return featured?.name ?? String(id);
 }
 
 async function toMatch(e: BSDEvent): Promise<Match> {
@@ -307,6 +559,7 @@ export const FEATURED_LEAGUES: League[] = [
 // ─── Team country cache (name -> flag) ────────────────────────────────────────
 
 let teamFlagCache: Map<string, string> | null = null;
+let teamCountryCache: Map<string, string> = new Map();
 let cachedLeagueTeamIds: Set<string> = new Set();
 
 async function ensureTeamFlagCache(leagueId: string): Promise<Map<string, string>> {
@@ -322,6 +575,7 @@ async function ensureTeamFlagCache(leagueId: string): Promise<Map<string, string
       const flag = countryToFlag(t.country) ?? '⚽';
       teamFlagCache.set(t.name.toLowerCase(), flag);
       teamFlagCache.set(String(t.id), flag);
+      teamCountryCache.set(t.name.toLowerCase(), t.country);
     }
   } catch {}
   return teamFlagCache;
@@ -334,16 +588,25 @@ function findLeague(leagueName: string): League | undefined {
   );
 }
 
-function enrichMatchFlags(matches: Match[], countryMap: Map<string, string>): Match[] {
-  return matches.map(m => ({
-    ...m,
-    homeBadge: countryMap.get(m.homeTeam.toLowerCase())
-      ?? countryMap.get(m.homeTeamId ?? '')
-      ?? countryToFlag(findLeague(m.league)?.country ?? ''),
-    awayBadge: countryMap.get(m.awayTeam.toLowerCase())
-      ?? countryMap.get(m.awayTeamId ?? '')
-      ?? countryToFlag(findLeague(m.league)?.country ?? ''),
-  }));
+function enrichMatchFlags(matches: Match[], countryMap: Map<string, string>, leagueId?: string): Match[] {
+  return matches.map(m => {
+    const homeKey = m.homeTeam.toLowerCase();
+    const awayKey = m.awayTeam.toLowerCase();
+    const leagueCountry = findLeague(m.league)?.country || '';
+    const homeCountry = teamCountryCache.get(homeKey) || leagueCountry;
+    const awayCountry = teamCountryCache.get(awayKey) || leagueCountry;
+    return {
+      ...m,
+      homeBadge: getWorldCupFlagUrl(m.homeTeam)
+        || countryMap.get(homeKey)
+        ?? countryMap.get(m.homeTeamId ?? '')
+        ?? countryToFlag(homeCountry || leagueCountry),
+      awayBadge: getWorldCupFlagUrl(m.awayTeam)
+        || countryMap.get(awayKey)
+        ?? countryMap.get(m.awayTeamId ?? '')
+        ?? countryToFlag(awayCountry || leagueCountry),
+    };
+  });
 }
 
 // ─── Events ───────────────────────────────────────────────────────────────────
@@ -369,7 +632,7 @@ export async function fetchLiveEvents(leagueId?: string): Promise<Match[]> {
       await ensureTeamFlagCache(leagueId);
     }
     const matches = await Promise.all(events.map(e => toMatch(e)));
-    return enrichMatchFlags(matches, teamFlagCache ?? new Map());
+    return enrichMatchFlags(matches, teamFlagCache ?? new Map(), leagueId);
   } catch {
     return [];
   }
@@ -467,9 +730,7 @@ export async function fetchTeamsByLeague(leagueId: string): Promise<Team[]> {
     const { data } = await api.get('/teams/', {
       params: { league_id: leagueId, limit: 50 },
     });
-    const teams = extractTeams(data).map(toTeam);
-    const withSports = await enrichWithSportsDb(teams);
-    return enrichWithApiFootball(withSports, leagueId);
+    return extractTeams(data).map(toTeam);
   } catch {
     return [];
   }
@@ -479,9 +740,7 @@ export async function fetchTeam(teamId: string): Promise<Team | null> {
   try {
     const { data } = await api.get(`/teams/${teamId}/`);
     if (!data) return null;
-    const team = toTeam(data);
-    const withSports = await enrichTeamWithSportsDb(team);
-    return enrichTeamWithApiFootball(withSports);
+    return toTeam(data);
   } catch {
     return null;
   }
