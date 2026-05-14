@@ -1,5 +1,5 @@
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Match } from '../types';
 import { getNotificationSettings, NotificationSettings } from './storage';
@@ -8,7 +8,26 @@ const NOTIFIED_LIVE_PREFIX = '@f26_n_live_';
 const NOTIFIED_DONE_PREFIX = '@f26_n_done_';
 const NOTIFIED_TODAY = '@f26_n_today';
 
-export function setupNotificationHandler() {
+const isExpoGo = Constants.appOwnership === 'expo' || Constants.executionEnvironment === 'storeClient';
+
+async function getNotificationsModule() {
+  if (isExpoGo) {
+    console.warn('Notifications unavailable in Expo Go / Expo Client: skipping expo-notifications.');
+    return null;
+  }
+
+  try {
+    return await import('expo-notifications');
+  } catch (error) {
+    console.warn('Failed to load expo-notifications module:', error);
+    return null;
+  }
+}
+
+export async function setupNotificationHandler() {
+  const Notifications = await getNotificationsModule();
+  if (!Notifications) return;
+
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
@@ -21,6 +40,9 @@ export function setupNotificationHandler() {
 }
 
 export async function requestNotificationPermissions(): Promise<boolean> {
+  const Notifications = await getNotificationsModule();
+  if (!Notifications) return false;
+
   const { status: existing } = await Notifications.getPermissionsAsync();
   let status = existing;
   if (existing !== 'granted') {
@@ -40,6 +62,9 @@ export async function requestNotificationPermissions(): Promise<boolean> {
 }
 
 async function sendNotification(title: string, body: string, data?: Record<string, any>) {
+  const Notifications = await getNotificationsModule();
+  if (!Notifications) return;
+
   await Notifications.scheduleNotificationAsync({
     content: { title, body, data, sound: true },
     trigger: null,

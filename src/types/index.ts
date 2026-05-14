@@ -78,6 +78,7 @@ export interface LineupPlayer {
   position: string;
   jersey_number: number | null;
   ai_score: number | null;
+  card?: 'yellow' | 'red';
 }
 
 export interface TeamLineup {

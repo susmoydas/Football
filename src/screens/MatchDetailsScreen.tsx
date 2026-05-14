@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Image }
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { Calendar03Icon, Clock01Icon, MapPinIcon, ChampionIcon, ChartAverageIcon, FootballIcon, ClipboardIcon } from '@hugeicons/core-free-icons';
-import { C, Match, Screen, LineupResponse } from '../types';
+import { C, LineupPlayer, Match, Screen, LineupResponse } from '../types';
 import { fetchEvent, fetchLineup } from '../services/api';
 import { TeamBadge, StatBar, LoadingSpinner, Header } from '../components';
 
@@ -31,6 +31,38 @@ const getPlayerInitials = (name: string) => {
 const positionLabel = (pos: string) => {
   const map: Record<string, string> = { G: 'Goalkeeper', D: 'Defender', M: 'Midfielder', F: 'Forward' };
   return map[pos] || pos;
+};
+
+const parseFormation = (formation: string): number[] =>
+  formation
+    .split('-')
+    .map((part) => parseInt(part.trim(), 10))
+    .filter((n) => !Number.isNaN(n) && n > 0);
+
+const buildFormationRows = (players: LineupPlayer[], formation: string): LineupPlayer[][] => {
+  const formationNumbers = parseFormation(formation);
+  const starters = players.slice(0, 11);
+  if (starters.length === 0) return [];
+
+  const rows: LineupPlayer[][] = [];
+  rows.push([starters[0]]);
+
+  let remaining = starters.slice(1);
+  if (formationNumbers.length === 0) {
+    rows.push(remaining);
+    return rows;
+  }
+
+  for (const count of formationNumbers) {
+    rows.push(remaining.slice(0, count));
+    remaining = remaining.slice(count);
+  }
+
+  if (remaining.length > 0) {
+    rows.push(remaining);
+  }
+
+  return rows;
 };
 
 const PLAYER_IMG_BASE = 'https://sports.bzzoiro.com/img/player/';
@@ -276,28 +308,44 @@ export default function MatchDetailsScreen({ onNavigate, matchData, navigation }
                         </View>
                       </View>
                       <ScrollView
-                        style={{ maxHeight: 340 }}
+                        style={{ maxHeight: 420 }}
                         showsVerticalScrollIndicator={false}
                         nestedScrollEnabled
                       >
-                        {team.players.map((p, i) => (
-                          <TouchableOpacity
-                            key={p.id}
-                            style={[
-                              s.playerRow,
-                              i < team.players.length - 1 && s.playerRowBorder,
-                              selectedPlayer === p.id && s.playerRowSelected,
-                            ]}
-                            activeOpacity={0.7}
-                            onPress={() => setSelectedPlayer(selectedPlayer === p.id ? null : p.id)}
-                          >
-                            <PlayerAvatar playerId={p.id} name={p.name} />
-                            <View style={s.playerInfo}>
-                              <Text style={s.playerName}>{p.short_name}</Text>
-                              <Text style={s.playerPosition}>{positionLabel(p.position)}{p.jersey_number ? ` · #${p.jersey_number}` : ''}</Text>
+                        <View style={s.formationField}>
+                          {buildFormationRows(team.players, team.formation).map((row, rowIndex) => (
+                            <View
+                              key={`${team.team_id}-${rowIndex}`}
+                              style={[s.formationRow, row.length === 1 && s.formationRowCentered]}
+                            >
+                              {row.map((player) => (
+                                <TouchableOpacity
+                                  key={player.id}
+                                  style={[
+                                    s.playerSpot,
+                                    selectedPlayer === player.id && s.playerSpotSelected,
+                                  ]}
+                                  activeOpacity={0.8}
+                                  onPress={() => setSelectedPlayer(selectedPlayer === player.id ? null : player.id)}
+                                >
+                                  <PlayerAvatar playerId={player.id} name={player.name} size={56} />
+                                  <Text style={s.playerNumber}>{player.jersey_number ? `#${player.jersey_number}` : ''}</Text>
+                                  <Text style={s.playerNameSmall} numberOfLines={1}>{player.short_name}</Text>
+                                  <Text style={s.playerPositionSmall}>{positionLabel(player.position)}</Text>
+                                  {player.card && (
+                                    <View style={[
+                                      s.cardStatus,
+                                      player.card === 'red' ? s.cardStatusRed : s.cardStatusYellow,
+                                    ]}>
+                                      <Text style={s.cardStatusText}>{player.card === 'red' ? 'R' : 'Y'}</Text>
+                                    </View>
+                                  )}
+                                </TouchableOpacity>
+                              ))}
                             </View>
-                          </TouchableOpacity>
-                        ))}
+                          ))}
+                        </View>
+
                         {team.substitutes.length > 0 && (
                           <>
                             <View style={s.subsHeader}>
@@ -313,10 +361,10 @@ export default function MatchDetailsScreen({ onNavigate, matchData, navigation }
                                 ]}
                                 activeOpacity={0.7}
                                 onPress={() => setSelectedPlayer(selectedPlayer === p.id ? null : p.id)}
-                                >
-                                  <PlayerAvatar playerId={p.id} name={p.name} />
-                                  <View style={s.playerInfo}>
-                                    <Text style={s.playerName}>{p.short_name}</Text>
+                              >
+                                <PlayerAvatar playerId={p.id} name={p.name} />
+                                <View style={s.playerInfo}>
+                                  <Text style={s.playerName}>{p.short_name}</Text>
                                   <Text style={s.playerPosition}>{positionLabel(p.position)}{p.jersey_number ? ` · #${p.jersey_number}` : ''}</Text>
                                 </View>
                               </TouchableOpacity>
@@ -652,6 +700,69 @@ const s = StyleSheet.create({
     color: C.textSecondary,
     fontSize: 12,
     marginTop: 2,
+  },
+  formationField: {
+    backgroundColor: C.cardAlt,
+    borderRadius: 18,
+    paddingVertical: 18,
+    paddingHorizontal: 12,
+    marginBottom: 14,
+  },
+  formationRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'flex-end',
+    marginBottom: 18,
+  },
+  formationRowCentered: {
+    justifyContent: 'center',
+  },
+  playerSpot: {
+    width: 92,
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: C.bg,
+  },
+  playerSpotSelected: {
+    backgroundColor: C.accent + '22',
+  },
+  playerNumber: {
+    color: C.accent,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 6,
+  },
+  playerNameSmall: {
+    color: C.textPrimary,
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  playerPositionSmall: {
+    color: C.textSecondary,
+    fontSize: 11,
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  cardStatus: {
+    marginTop: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  cardStatusText: {
+    color: '#000',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  cardStatusYellow: {
+    backgroundColor: '#FFD166',
+  },
+  cardStatusRed: {
+    backgroundColor: C.red,
   },
   scoreBox: {
     alignItems: 'flex-end',
