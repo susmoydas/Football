@@ -152,7 +152,7 @@ export function TeamCard({ team, isFavourite, onToggleFavourite, onPress, listMo
     return (
       <Pressable onPress={onPress}>
         <Card size="sm" variant="outline" className="rounded-xl flex-row items-center mb-2">
-          <TeamBadge uri={team.badge} size={44} name={team.name} />
+          <TeamBadge uri={team.badgeUrl || team.badge} size={44} name={team.name} />
           <Box className="flex-1 ml-3">
             <Text size="sm" className="text-typography-0 font-semibold">{team.name}</Text>
             {team.country && (
@@ -172,7 +172,7 @@ export function TeamCard({ team, isFavourite, onToggleFavourite, onPress, listMo
         <Pressable className="absolute top-2.5 right-2.5 p-1" onPress={onToggleFavourite}>
           <HugeiconsIcon icon={StarIcon} size={16} color={isFavourite ? '#FFD700' : '#A9B4C2'} />
         </Pressable>
-        <TeamBadge uri={team.badge} size={56} name={team.name} />
+        <TeamBadge uri={team.badgeUrl || team.badge} size={56} name={team.name} />
         <Text size="sm" className="text-typography-0 font-semibold mt-2 text-center" numberOfLines={2}>{team.name}</Text>
         {team.country && (
           <Text size="xs" className="text-typography-500 mt-0.5 text-center">{team.badge} {team.country}</Text>

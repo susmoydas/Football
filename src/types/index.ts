@@ -96,6 +96,7 @@ export interface Team {
   id: string;
   name: string;
   badge: string;
+  badgeUrl?: string;
   league: string;
   country: string;
   stadium?: string;
