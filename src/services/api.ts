@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Match, Team, Standing, League, MatchStatus } from '../types';
+import { Match, Team, Standing, League, MatchStatus, LineupResponse, NewsArticle } from '../types';
 import { BSD } from '../config';
 
 const api = axios.create({
@@ -776,6 +776,72 @@ export async function fetchStandings(leagueId: string, _season?: string): Promis
       return all;
     }
     return [];
+  } catch {
+    return [];
+  }
+}
+
+// ─── Lineups ───────────────────────────────────────────────────────────────────
+
+export async function fetchLineup(eventId: string): Promise<LineupResponse | null> {
+  try {
+    const { data } = await api.get<LineupResponse>(`/events/${eventId}/lineups/`);
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+// ─── ESPN News ─────────────────────────────────────────────────────────────────
+
+const ESPN_LEAGUES = ['fifa.world', 'eng.1', 'uefa.champions', 'esp.1', 'ita.1', 'ger.1', 'fra.1'];
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+export async function fetchFootballNews(): Promise<NewsArticle[]> {
+  try {
+    const responses = await Promise.all(
+      ESPN_LEAGUES.map(league =>
+        fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${league}/news?limit=5`)
+          .then(r => r.json())
+          .catch(() => null)
+      )
+    );
+    const raw: { article: any; published: Date }[] = [];
+    const seen = new Set<string>();
+    for (const data of responses) {
+      if (!data?.articles) continue;
+      for (const a of data.articles) {
+        if (seen.has(String(a.id))) continue;
+        seen.add(String(a.id));
+        raw.push({ article: a, published: new Date(a.published) });
+      }
+    }
+    raw.sort((a, b) => b.published.getTime() - a.published.getTime());
+    return raw.slice(0, 30).map(({ article: a }) => {
+      const image = a.images?.find((i: any) => i.type === 'header')?.url
+        || a.images?.find((i: any) => i.type === 'wide')?.url
+        || a.images?.[0]?.url;
+      return {
+        id: String(a.id),
+        title: a.headline,
+        source: a.byline || 'ESPN',
+        time: timeAgo(a.published),
+        image,
+        content: a.description,
+        featured: false,
+      };
+    });
   } catch {
     return [];
   }

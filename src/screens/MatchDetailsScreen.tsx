@@ -1,33 +1,80 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import { StarIcon, Share04Icon } from '@hugeicons/core-free-icons';
-import { C, Match, Screen } from '../types';
-import { fetchEvent } from '../services/api';
+import { Calendar03Icon, Clock01Icon, MapPinIcon, ChampionIcon, ChartAverageIcon, FootballIcon, ClipboardIcon } from '@hugeicons/core-free-icons';
+import { C, Match, Screen, LineupResponse } from '../types';
+import { fetchEvent, fetchLineup } from '../services/api';
 import { TeamBadge, StatBar, LoadingSpinner, Header } from '../components';
 
 interface Props {
   onNavigate?: (screen: Screen) => void;
   matchData: Match;
-  favourites: Set<string>;
-  onToggleFavourite: (id: string) => void;
   navigation?: any;
 }
 
 type Tab = 'summary' | 'stats' | 'events' | 'lineups';
 
-export default function MatchDetailsScreen({ onNavigate, matchData, favourites, onToggleFavourite, navigation }: Props) {
+const getPlayerColor = (name: string) => {
+  const colors = ['#0D9F68', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+};
+
+const getPlayerInitials = (name: string) => {
+  const parts = name.trim().split(' ');
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.substring(0, 2).toUpperCase();
+};
+
+const positionLabel = (pos: string) => {
+  const map: Record<string, string> = { G: 'Goalkeeper', D: 'Defender', M: 'Midfielder', F: 'Forward' };
+  return map[pos] || pos;
+};
+
+const PLAYER_IMG_BASE = 'https://sports.bzzoiro.com/img/player/';
+
+function PlayerAvatar({ playerId, name, size = 40 }: { playerId: number; name: string; size?: number }) {
+  const [failed, setFailed] = useState(false);
+  const color = getPlayerColor(name);
+  const initials = getPlayerInitials(name);
+  return (
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: color, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+      {!failed ? (
+        <Image
+          source={{ uri: `${PLAYER_IMG_BASE}${playerId}/` }}
+          style={{ width: size, height: size }}
+          resizeMode="cover"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <Text style={{ color: '#FFFFFF', fontSize: size * 0.4, fontWeight: '700' }}>{initials}</Text>
+      )}
+    </View>
+  );
+}
+
+export default function MatchDetailsScreen({ onNavigate, matchData, navigation }: Props) {
   const [tab, setTab] = useState<Tab>('summary');
   const [match, setMatch] = useState<Match>(matchData);
+  const [selectedPlayer, setSelectedPlayer] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const isFav = favourites.has(match.id);
+  const [lineup, setLineup] = useState<LineupResponse | null>(null);
+  const [lineupLoading, setLineupLoading] = useState(false);
 
   useEffect(() => {
     fetchEvent(matchData.id).then(m => {
       if (m) setMatch(m);
     }).finally(() => setLoading(false));
   }, [matchData.id]);
+
+  useEffect(() => {
+    if (tab === 'lineups' && !lineup) {
+      setLineupLoading(true);
+      fetchLineup(matchData.id).then(setLineup).finally(() => setLineupLoading(false));
+    }
+  }, [tab, matchData.id, lineup]);
 
   const isLive = match.status === 'live';
   const isFinished = match.status === 'finished';
@@ -43,42 +90,58 @@ export default function MatchDetailsScreen({ onNavigate, matchData, favourites, 
         title="Match Details"
         showBack={true}
         onBackPress={() => navigation?.goBack()}
-        rightAction={{
-          icon: <HugeiconsIcon icon={StarIcon} size={18} color={isFav ? '#FFD700' : C.textSecondary} />,
-          onPress: () => onToggleFavourite(match.id),
-        }}
       />
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        {/* ─── Score Hero ─── */}
+        {/* ─── Score Hero (Card Style) ─── */}
         <View style={s.hero}>
-          <Text style={s.heroLeague}>{match.league}</Text>
-          <View style={s.heroMain}>
-            <View style={s.heroTeam}>
-              <TeamBadge uri={match.homeBadge} size={64} />
-              <Text style={s.heroTeamName} numberOfLines={2}>{match.homeTeam}</Text>
+          <View style={s.heroInner}>
+            {/* Header: League + Date */}
+            <View style={s.heroHeader}>
+              <Text style={s.heroLeague} numberOfLines={1}>{match.league}</Text>
+              <Text style={s.heroDate}>{dateStr}</Text>
             </View>
-            <View style={s.heroScoreWrap}>
-              {hasScore ? (
-                <Text style={s.heroScore}>{match.homeScore != null ? match.homeScore : '-'} – {match.awayScore != null ? match.awayScore : '-'}</Text>
-              ) : (
-                <Text style={s.heroTime}>{match.time}</Text>
-              )}
+
+            {/* Main row: [Home Logo] [Score] [Away Logo] */}
+            <View style={s.heroMain}>
+              <View style={s.heroTeam}>
+                <TeamBadge uri={match.homeBadge} size={64} name={match.homeTeam} />
+                <Text style={s.heroTeamName} numberOfLines={2}>{match.homeTeam}</Text>
+              </View>
+
+              <View style={s.heroScoreWrap}>
+                {hasScore ? (
+                  <View style={s.scoreRow}>
+                    <Text style={[s.heroScore, isLive && { color: C.red }]}>
+                      {match.homeScore != null ? match.homeScore : '-'}
+                    </Text>
+                    <Text style={s.scoreSep}>:</Text>
+                    <Text style={[s.heroScore, isLive && { color: C.red }]}>
+                      {match.awayScore != null ? match.awayScore : '-'}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={s.heroTime}>{match.time}</Text>
+                )}
+              </View>
+
+              <View style={s.heroTeam}>
+                <TeamBadge uri={match.awayBadge} size={64} name={match.awayTeam} />
+                <Text style={s.heroTeamName} numberOfLines={2}>{match.awayTeam}</Text>
+              </View>
             </View>
-            <View style={s.heroTeam}>
-              <TeamBadge uri={match.awayBadge} size={64} />
-              <Text style={s.heroTeamName} numberOfLines={2}>{match.awayTeam}</Text>
+
+            {/* Status row */}
+            <View style={s.statusWrap}>
+              {isLive && <View style={s.statusDotGreen} />}
+              <Text style={[s.statusText, isLive && { color: '#22C55E', fontWeight: '800' }]}>
+                {isLive
+                  ? (match.progress ? `LIVE ${match.progress}'` : 'LIVE')
+                  : isFinished
+                  ? 'Full Time'
+                  : 'UPCOMING'}
+              </Text>
             </View>
-          </View>
-          <View style={s.statusWrap}>
-            {isLive && <View style={s.statusDot} />}
-            <Text style={[s.statusText, isLive && { color: C.red }]}>
-              {isLive
-                ? (match.progress ? `LIVE ${match.progress}'` : 'LIVE')
-                : isFinished
-                ? 'Full Time'
-                : match.time}
-            </Text>
           </View>
         </View>
 
@@ -100,18 +163,18 @@ export default function MatchDetailsScreen({ onNavigate, matchData, favourites, 
               <Text style={s.cardTitle}>Match Information</Text>
               <View style={s.cardBody}>
                 {[
-                  ['📅', 'Date', dateStr],
-                  ['🕐', 'Kick-off', match.time ? `${match.time} (local)` : 'TBC'],
-                  ['🏟️', 'Venue', match.venue || 'TBC'],
-                  ['🏆', 'Competition', match.league],
-                ].map(([icon, label, value], i) => value ? (
-                  <View key={label} style={[s.infoRow, i < 3 && s.infoRowBorder]}>
+                  { icon: Calendar03Icon, label: 'Date', value: dateStr },
+                  { icon: Clock01Icon, label: 'Kick-off', value: match.time ? `${match.time} (local)` : 'TBC' },
+                  { icon: MapPinIcon, label: 'Venue', value: match.venue || 'TBC' },
+                  { icon: ChampionIcon, label: 'Competition', value: match.league },
+                ].map((item, i) => item.value ? (
+                  <View key={item.label} style={[s.infoRow, i < 3 && s.infoRowBorder]}>
                     <View style={s.infoIcon}>
-                      <Text style={{ fontSize: 15 }}>{icon}</Text>
+                      <HugeiconsIcon icon={item.icon} size={22} color={C.accent} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={s.infoLabel}>{label}</Text>
-                      <Text style={s.infoValue}>{value}</Text>
+                      <Text style={s.infoLabel}>{item.label}</Text>
+                      <Text style={s.infoValue}>{item.value}</Text>
                     </View>
                   </View>
                 ) : null)}
@@ -139,7 +202,7 @@ export default function MatchDetailsScreen({ onNavigate, matchData, favourites, 
                 </View>
               ) : (
                 <View style={s.emptyState}>
-                  <Text style={s.emptyIcon}>📊</Text>
+                  <HugeiconsIcon icon={ChartAverageIcon} size={30} color={C.textSecondary} />
                   <Text style={s.emptyText}>Stats available after kick-off</Text>
                 </View>
               )}
@@ -167,7 +230,7 @@ export default function MatchDetailsScreen({ onNavigate, matchData, favourites, 
                         </View>
                         <View style={s.eventLineCol}>
                           <View style={[s.eventDot, { backgroundColor: isGoal ? C.gold : C.red }]}>
-                            <Text style={{ fontSize: 10 }}>{isGoal ? '⚽' : '🟨'}</Text>
+                            <HugeiconsIcon icon={FootballIcon} size={12} color={isGoal ? '#000' : '#FFF'} />
                           </View>
                           {i < 3 && <View style={s.eventLine} />}
                         </View>
@@ -181,7 +244,7 @@ export default function MatchDetailsScreen({ onNavigate, matchData, favourites, 
                 </View>
               ) : (
                 <View style={s.emptyState}>
-                  <Text style={s.emptyIcon}>📋</Text>
+                  <HugeiconsIcon icon={ClipboardIcon} size={30} color={C.textSecondary} />
                   <Text style={s.emptyText}>Events available after kick-off</Text>
                 </View>
               )}
@@ -191,34 +254,79 @@ export default function MatchDetailsScreen({ onNavigate, matchData, favourites, 
           {/* ── Lineups ── */}
           {tab === 'lineups' && (
             <View style={{ gap: 12 }}>
-              {[{ name: match.homeTeam, badge: match.homeBadge }, { name: match.awayTeam, badge: match.awayBadge }].map(team => (
-                <View key={team.name} style={s.card}>
-                  <View style={s.lineupHeader}>
-                    <TeamBadge uri={team.badge} size={24} />
-                    <Text style={[s.cardTitle, { marginBottom: 0, flex: 1 }]}>{team.name}</Text>
-                    <View style={s.formationBadge}>
-                      <Text style={s.formationText}>4-4-2</Text>
-                    </View>
-                  </View>
-                  <View style={s.cardBody}>
-                    {[
-                      { num: 1, pos: 'GK', name: 'Player 1' },
-                      { num: 2, pos: 'DF', name: 'Player 2' },
-                      { num: 3, pos: 'DF', name: 'Player 3' },
-                      { num: 4, pos: 'DF', name: 'Player 4' },
-                      { num: 5, pos: 'MF', name: 'Player 5' },
-                    ].map((p, i) => (
-                      <View key={i} style={[s.lineupRow, i < 4 && s.infoRowBorder]}>
-                        <View style={s.shirtNum}>
-                          <Text style={s.shirtNumText}>{p.num}</Text>
-                        </View>
-                        <Text style={s.lineupPos}>{p.pos}</Text>
-                        <Text style={s.lineupName}>{p.name}</Text>
-                      </View>
-                    ))}
+              {lineupLoading ? (
+                <View style={s.card}><LoadingSpinner /></View>
+              ) : !lineup ? (
+                <View style={s.card}>
+                  <View style={s.emptyState}>
+                    <HugeiconsIcon icon={ClipboardIcon} size={30} color={C.textSecondary} />
+                    <Text style={s.emptyText}>Lineups not yet available</Text>
                   </View>
                 </View>
-              ))}
+              ) : (
+                [lineup.lineups.home, lineup.lineups.away].map(team => {
+                  const teamBadge = team.team_id === Number(match.homeTeamId) ? match.homeBadge : match.awayBadge;
+                  return (
+                    <View key={team.team_id} style={s.card}>
+                      <View style={s.lineupHeader}>
+                        <TeamBadge uri={teamBadge} size={32} />
+                        <Text style={s.lineupTeamName}>{team.team_name}</Text>
+                        <View style={s.formationBadge}>
+                          <Text style={s.formationText}>{team.formation}</Text>
+                        </View>
+                      </View>
+                      <ScrollView
+                        style={{ maxHeight: 340 }}
+                        showsVerticalScrollIndicator={false}
+                        nestedScrollEnabled
+                      >
+                        {team.players.map((p, i) => (
+                          <TouchableOpacity
+                            key={p.id}
+                            style={[
+                              s.playerRow,
+                              i < team.players.length - 1 && s.playerRowBorder,
+                              selectedPlayer === p.id && s.playerRowSelected,
+                            ]}
+                            activeOpacity={0.7}
+                            onPress={() => setSelectedPlayer(selectedPlayer === p.id ? null : p.id)}
+                          >
+                            <PlayerAvatar playerId={p.id} name={p.name} />
+                            <View style={s.playerInfo}>
+                              <Text style={s.playerName}>{p.short_name}</Text>
+                              <Text style={s.playerPosition}>{positionLabel(p.position)}{p.jersey_number ? ` · #${p.jersey_number}` : ''}</Text>
+                            </View>
+                          </TouchableOpacity>
+                        ))}
+                        {team.substitutes.length > 0 && (
+                          <>
+                            <View style={s.subsHeader}>
+                              <Text style={s.subsHeaderText}>Substitutes</Text>
+                            </View>
+                            {team.substitutes.map((p, i) => (
+                              <TouchableOpacity
+                                key={p.id}
+                                style={[
+                                  s.playerRow,
+                                  i < team.substitutes.length - 1 && s.playerRowBorder,
+                                  selectedPlayer === p.id && s.playerRowSelected,
+                                ]}
+                                activeOpacity={0.7}
+                                onPress={() => setSelectedPlayer(selectedPlayer === p.id ? null : p.id)}
+                                >
+                                  <PlayerAvatar playerId={p.id} name={p.name} />
+                                  <View style={s.playerInfo}>
+                                    <Text style={s.playerName}>{p.short_name}</Text>
+                                  <Text style={s.playerPosition}>{positionLabel(p.position)}{p.jersey_number ? ` · #${p.jersey_number}` : ''}</Text>
+                                </View>
+                              </TouchableOpacity>
+                            ))}
+                          </>
+                        )}
+                      </ScrollView>
+                    </View>
+                  );})
+              )}
             </View>
           )}
         </View>
@@ -231,25 +339,50 @@ export default function MatchDetailsScreen({ onNavigate, matchData, favourites, 
 
 const s = StyleSheet.create({
   hero: {
-    alignItems: 'center',
-    paddingVertical: 28,
     paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
+    backgroundColor: C.bg,
+  },
+  heroInner: {
     backgroundColor: C.card,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
+    borderRadius: 16,
+    padding: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.35,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
+  },
+  heroHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   heroLeague: {
     color: C.textSecondary,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 1.2,
-    marginBottom: 16,
+    flex: 1,
+  },
+  heroDate: {
+    color: C.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
   },
   heroMain: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '100%',
+    justifyContent: 'space-between',
   },
   heroTeam: {
     flex: 1,
@@ -258,48 +391,59 @@ const s = StyleSheet.create({
   },
   heroTeamName: {
     color: C.textPrimary,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
     lineHeight: 18,
   },
   heroScoreWrap: {
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     minWidth: 100,
+  },
+  scoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   heroScore: {
     color: C.textPrimary,
-    fontSize: 38,
+    fontSize: 36,
     fontWeight: '800',
-    letterSpacing: 2,
+    letterSpacing: 1,
+  },
+  scoreSep: {
+    color: C.textSecondary,
+    fontSize: 20,
+    fontWeight: '700',
   },
   heroTime: {
-    color: C.textSecondary,
-    fontSize: 18,
-    fontWeight: '600',
+    color: C.textPrimary,
+    fontSize: 20,
+    fontWeight: '700',
   },
   statusWrap: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: C.cardAlt,
     marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
   },
-  statusDot: {
-    width: 7,
-    height: 7,
+  statusDotGreen: {
+    width: 8,
+    height: 8,
     borderRadius: 4,
-    backgroundColor: C.red,
+    backgroundColor: '#22C55E',
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
     color: C.textSecondary,
+    textTransform: 'uppercase',
   },
   tabs: {
     flexDirection: 'row',
@@ -315,7 +459,7 @@ const s = StyleSheet.create({
   },
   tabText: {
     color: C.textSecondary,
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600',
   },
   tabTextActive: {
@@ -334,12 +478,10 @@ const s = StyleSheet.create({
     backgroundColor: C.card,
     borderRadius: 16,
     padding: 16,
-    borderWidth: 1,
-    borderColor: C.border,
   },
   cardTitle: {
     color: C.textPrimary,
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: '700',
     marginBottom: 14,
   },
@@ -357,22 +499,22 @@ const s = StyleSheet.create({
     borderBottomColor: C.border,
   },
   infoIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     backgroundColor: C.cardAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },
   infoLabel: {
     color: C.textSecondary,
-    fontSize: 11,
+    fontSize: 14,
     marginBottom: 2,
     fontWeight: '500',
   },
   infoValue: {
     color: C.textPrimary,
-    fontSize: 14,
+    fontSize: 17,
     fontWeight: '500',
   },
   divider: {
@@ -390,7 +532,7 @@ const s = StyleSheet.create({
   },
   emptyText: {
     color: C.textSecondary,
-    fontSize: 13,
+    fontSize: 15,
     textAlign: 'center',
   },
   timeline: {
@@ -408,7 +550,7 @@ const s = StyleSheet.create({
   },
   eventTime: {
     color: C.textSecondary,
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '700',
   },
   eventLineCol: {
@@ -438,12 +580,12 @@ const s = StyleSheet.create({
   },
   eventLabel: {
     color: C.textPrimary,
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600',
   },
   eventTeam: {
     color: C.textSecondary,
-    fontSize: 12,
+    fontSize: 14,
     marginTop: 2,
   },
   lineupHeader: {
@@ -451,6 +593,12 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     marginBottom: 14,
+  },
+  lineupTeamName: {
+    color: C.textPrimary,
+    fontSize: 18,
+    fontWeight: '700',
+    flex: 1,
   },
   formationBadge: {
     backgroundColor: C.cardAlt,
@@ -460,36 +608,75 @@ const s = StyleSheet.create({
   },
   formationText: {
     color: C.accent,
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '700',
   },
-  lineupRow: {
+  playerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
-    gap: 10,
+    paddingHorizontal: 4,
+    gap: 12,
   },
-  shirtNum: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: C.cardAlt,
+  playerRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  playerRowSelected: {
+    backgroundColor: C.accent + '18',
+    borderRadius: 10,
+    marginHorizontal: -4,
+    paddingHorizontal: 8,
+  },
+  playerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  shirtNumText: {
-    color: C.textPrimary,
-    fontSize: 11,
+  playerAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: '700',
   },
-  lineupPos: {
+  playerInfo: {
+    flex: 1,
+  },
+  playerName: {
+    color: C.textPrimary,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  playerPosition: {
+    color: C.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  scoreBox: {
+    alignItems: 'flex-end',
+  },
+  playerScore: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  startsText: {
     color: C.textSecondary,
     fontSize: 11,
-    fontWeight: '600',
-    width: 28,
+    marginTop: 2,
   },
-  lineupName: {
-    color: C.textPrimary,
-    fontSize: 14,
+  subsHeader: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+    marginTop: 4,
+  },
+  subsHeaderText: {
+    color: C.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 });

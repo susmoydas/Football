@@ -3,61 +3,19 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { C, Match, Screen, NewsArticle } from '../types';
 import {
-  fetchLiveEvents, fetchLeagueEvents, fetchNextEvents, FEATURED_LEAGUES,
+  fetchLiveEvents, fetchLeagueEvents, fetchNextEvents, fetchFootballNews,
 } from '../services/api';
 import {
-  MatchCard, FilterPill, SectionHeader, LoadingSpinner,
-  WorldCupBanner, NewsFeedCard,
+  WorldCupBanner, MatchCard, FilterPill, SectionHeader, LoadingSpinner,
+  NewsFeedCard,
 } from '../components';
-import { checkAndNotifyMatches } from '../services/notifications';
 
 interface Props {
   onNavigate: (screen: Screen, data?: any) => void;
-  favourites: Set<string>;
-  onToggleFavourite: (id: string) => void;
   selectedLeagueId: string;
 }
 
 type Tab = 'live' | 'today' | 'tomorrow' | 'all';
-
-const NEWS: NewsArticle[] = [
-  {
-    id: '1', title: 'World Cup 2026: Complete guide to host cities and venues across USA, Canada & Mexico',
-    source: 'FIFA News', time: '2 hours ago', featured: true,
-    image: 'https://images.unsplash.com/photo-1577223625816-7546f13df25d?w=600&q=80',
-    content: 'The 2026 FIFA World Cup will be the most expansive in history, featuring 48 teams across 16 host cities...',
-  },
-  {
-    id: '2', title: 'Champions League quarter-finals: Preview of the biggest matches this week',
-    source: 'UEFA.com', time: '4 hours ago',
-    image: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=600&q=80',
-    content: 'The UEFA Champions League quarter-finals are set to deliver high drama...',
-  },
-  {
-    id: '3', title: 'Premier League title race: The key matches that will decide the champion',
-    source: 'BBC Sport', time: '5 hours ago',
-    image: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=600&q=80',
-    content: 'The Premier League title race is heating up...',
-  },
-  {
-    id: '4', title: 'La Liga: Barcelona and Real Madrid battle for top spot with crunch fixtures ahead',
-    source: 'Marca', time: '7 hours ago',
-    image: 'https://images.unsplash.com/photo-1489944966321-032c8f8a5a4b?w=600&q=80',
-    content: 'The battle for La Liga supremacy continues...',
-  },
-  {
-    id: '5', title: 'Transfer news: Summer window set to be one of the most active in history',
-    source: 'Sky Sports', time: '9 hours ago',
-    image: 'https://images.unsplash.com/photo-1432521123158-c96e0ac24793?w=600&q=80',
-    content: 'The upcoming summer transfer window is shaping up...',
-  },
-  {
-    id: '6', title: 'Bundesliga: Bayer Leverkusen continue incredible unbeaten run this season',
-    source: 'Kicker', time: '12 hours ago',
-    image: 'https://images.unsplash.com/photo-1575361204480-a430a8e7eae0?w=600&q=80',
-    content: 'Bayer Leverkusen\'s remarkable unbeaten run continues...',
-  },
-];
 
 function isToday(dateStr: string): boolean {
   const today = new Date();
@@ -72,14 +30,13 @@ function isTomorrow(dateStr: string): boolean {
   return d.toDateString() === tomorrow.toDateString();
 }
 
-export default function HomeScreen({ onNavigate, favourites, onToggleFavourite, selectedLeagueId }: Props) {
+export default function HomeScreen({ onNavigate, selectedLeagueId }: Props) {
   const [tab, setTab] = useState<Tab>('all');
   const [liveMatches, setLiveMatches] = useState<Match[]>([]);
   const [allMatches, setAllMatches] = useState<Match[]>([]);
+  const [news, setNews] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  const league = FEATURED_LEAGUES.find(l => l.id === selectedLeagueId) ?? FEATURED_LEAGUES[0];
 
   function isPlaceholder(name: string): boolean {
     return /^[A-Z]\d+$/.test(name);
@@ -87,12 +44,14 @@ export default function HomeScreen({ onNavigate, favourites, onToggleFavourite, 
 
   const load = async () => {
     try {
-      const [live, all, next] = await Promise.all([
+      const [live, all, next, newsData] = await Promise.all([
         fetchLiveEvents(selectedLeagueId),
         fetchLeagueEvents(selectedLeagueId),
         fetchNextEvents(selectedLeagueId),
+        fetchFootballNews(),
       ]);
       setLiveMatches(live);
+      if (newsData.length > 0) setNews(newsData.slice(0, 5));
 
       const seen = new Set<string>();
       const merged = [...live, ...all, ...next].filter(m => {
@@ -102,7 +61,6 @@ export default function HomeScreen({ onNavigate, favourites, onToggleFavourite, 
         return true;
       });
       setAllMatches(merged);
-      checkAndNotifyMatches(merged, favourites);
     } catch {
       setLiveMatches([]);
       setAllMatches([]);
@@ -135,15 +93,10 @@ export default function HomeScreen({ onNavigate, favourites, onToggleFavourite, 
         contentContainerStyle={{ paddingBottom: 32 }}
       >
         <View style={s.inner}>
-          {/* Banner */}
-          <WorldCupBanner
-            leagueName={league.name}
-            onViewFixtures={() => onNavigate('fixtures')}
-          />
-
+          <WorldCupBanner />
           {/* Tab filters */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }} contentContainerStyle={{ gap: 8, paddingRight: 4 }}>
-            {([['live', '● Live'], ['today', 'Today'], ['tomorrow', 'Tomorrow'], ['all', 'All']] as [Tab, string][]).map(([t, label]) => (
+            {([['all', 'All'], ['live', '● Live'], ['today', 'Today'], ['tomorrow', 'Tomorrow']] as [Tab, string][]).map(([t, label]) => (
               <FilterPill key={t} label={label} active={tab === t} onPress={() => setTab(t)} />
             ))}
           </ScrollView>
@@ -220,7 +173,7 @@ export default function HomeScreen({ onNavigate, favourites, onToggleFavourite, 
               <Text style={s.newsViewAll}>View all</Text>
             </TouchableOpacity>
           </View>
-          {NEWS.slice(0, 3).map(n => (
+          {news.slice(0, 3).map(n => (
             <NewsFeedCard key={n.id} article={n} onPress={() => onNavigate('news-article', n)} />
           ))}
         </View>

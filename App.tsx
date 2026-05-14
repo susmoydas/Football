@@ -1,5 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { StatusBar, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StatusBar, Platform, ActivityIndicator, View } from 'react-native';
+import {
+  useFonts,
+  Lexend_400Regular,
+  Lexend_500Medium,
+  Lexend_600SemiBold,
+  Lexend_700Bold,
+  Lexend_800ExtraBold,
+} from '@expo-google-fonts/lexend';
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NavigationContainer } from '@react-navigation/native';
@@ -11,9 +19,9 @@ import { HStack } from '@/components/ui/hstack';
 import { Text } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import { Home01Icon, Calendar03Icon, UserGroupIcon, ChartIcon, MoreHorizontalIcon } from '@hugeicons/core-free-icons';
-import { Screen, Match, Team } from './src/types';
-import { getFavMatches, getFavTeams, toggleFavMatch, toggleFavTeam, getSelectedLeague } from './src/services/storage';
+import { Home01Icon, Calendar03Icon, UserGroupIcon, ChartIcon, Menu02Icon } from '@hugeicons/core-free-icons';
+import { Screen, Match } from './src/types';
+import { getSelectedLeague } from './src/services/storage';
 import { setupNotificationHandler } from './src/services/notifications';
 
 import SplashScreen from './src/screens/SplashScreen';
@@ -21,7 +29,6 @@ import HomeScreen from './src/screens/HomeScreen';
 import FixturesScreen from './src/screens/FixturesScreen';
 import TeamsScreen from './src/screens/TeamsScreen';
 import StandingsScreen from './src/screens/StandingsScreen';
-import FavouritesScreen from './src/screens/FavouritesScreen';
 import MatchDetailsScreen from './src/screens/MatchDetailsScreen';
 import ResultsScreen from './src/screens/ResultsScreen';
 import MoreScreen from './src/screens/MoreScreen';
@@ -39,25 +46,44 @@ const NAV_ITEMS: { id: string; icon: any; label: string }[] = [
   { id: 'Fixtures', icon: Calendar03Icon, label: 'Matches' },
   { id: 'Teams', icon: UserGroupIcon, label: 'Teams' },
   { id: 'Standings', icon: ChartIcon, label: 'Standings' },
-  { id: 'More', icon: MoreHorizontalIcon, label: 'More' },
+  { id: 'More', icon: Menu02Icon, label: 'More' },
 ];
 
 function BottomNav({ state, navigation }: { state: any; navigation: any }) {
   const active = state.routes[state.index].name;
   return (
-    <Box className="bg-background-0 px-1 pt-1" style={{ paddingBottom: Platform.OS === 'ios' ? 20 : 8 }}>
-      <HStack className="items-center">
+    <Box className="bg-background-0" style={{ paddingTop: 4, paddingBottom: Platform.OS === 'ios' ? 8 : 4 }}>
+      <HStack className="items-start justify-around">
         {NAV_ITEMS.map(item => {
           const isActive = active === item.id;
           return (
             <Pressable
               key={item.id}
-              className="flex-1 items-center py-1 relative"
+              className="items-center"
+              style={{ width: 56 }}
               onPress={() => navigation.navigate(item.id)}
             >
-              {isActive && <Box className="absolute -top-1 left-[30%] right-[30%] h-[2px] rounded-sm bg-success-500" />}
-              <HugeiconsIcon icon={item.icon} size={22} color={isActive ? '#20C997' : '#4A4A5A'} />
-              <Text className={`text-[10px] font-semibold mt-0.5 ${isActive ? 'text-success-500' : 'text-typography-500'}`}>{item.label}</Text>
+              <Box
+                className="items-center justify-center"
+                style={{
+                  width: 40,
+                  height: 32,
+                  borderRadius: 10,
+                  backgroundColor: isActive ? '#0D9F68' + '15' : 'transparent',
+                }}
+              >
+                <HugeiconsIcon icon={item.icon} size={22} color={isActive ? '#0D9F68' : '#5A5A6E'} />
+              </Box>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: isActive ? '700' : '500',
+                  color: isActive ? '#0D9F68' : '#5A5A6E',
+                  marginTop: 3,
+                }}
+              >
+                {item.label}
+              </Text>
             </Pressable>
           );
         })}
@@ -83,8 +109,6 @@ const buildNavigate = (navigation: any) => (screen: Screen | string, data?: any)
       return rootNav.navigate('Standings');
     case 'more':
       return rootNav.navigate('More');
-    case 'favourites':
-      return navigation.navigate('Favourites');
     case 'news':
       return navigation.navigate('News');
     case 'news-article':
@@ -96,14 +120,12 @@ const buildNavigate = (navigation: any) => (screen: Screen | string, data?: any)
   }
 };
 
-function HomeStack({ favourites, onToggleFavourite, selectedLeagueId, allMatches, allTeams }: { favourites: Set<string>; onToggleFavourite: (id: string) => void; selectedLeagueId: string; allMatches: Match[]; allTeams: Team[]; }) {
+function HomeStack({ selectedLeagueId }: { selectedLeagueId: string; }) {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="HomeMain">
         {({ navigation }) => (
           <HomeScreen
-            favourites={favourites}
-            onToggleFavourite={onToggleFavourite}
             selectedLeagueId={selectedLeagueId}
             onNavigate={buildNavigate(navigation)}
           />
@@ -114,20 +136,6 @@ function HomeStack({ favourites, onToggleFavourite, selectedLeagueId, allMatches
           <MatchDetailsScreen
             onNavigate={buildNavigate(navigation)}
             matchData={route.params?.matchData as Match}
-            favourites={favourites}
-            onToggleFavourite={onToggleFavourite}
-            navigation={navigation}
-          />
-        )}
-      </Stack.Screen>
-      <Stack.Screen name="Favourites">
-        {({ navigation }) => (
-          <FavouritesScreen
-            favourites={favourites}
-            onToggleFavourite={onToggleFavourite}
-            allMatches={allMatches}
-            allTeams={allTeams}
-            onNavigate={buildNavigate(navigation)}
             navigation={navigation}
           />
         )}
@@ -144,14 +152,12 @@ function HomeStack({ favourites, onToggleFavourite, selectedLeagueId, allMatches
   );
 }
 
-function FixturesStack({ favourites, onToggleFavourite, selectedLeagueId }: { favourites: Set<string>; onToggleFavourite: (id: string) => void; selectedLeagueId: string; }) {
+function FixturesStack({ selectedLeagueId }: { selectedLeagueId: string; }) {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="FixturesMain">
         {({ navigation }) => (
           <FixturesScreen
-            favourites={favourites}
-            onToggleFavourite={onToggleFavourite}
             selectedLeagueId={selectedLeagueId}
             onNavigate={buildNavigate(navigation)}
             navigation={navigation}
@@ -172,8 +178,6 @@ function FixturesStack({ favourites, onToggleFavourite, selectedLeagueId }: { fa
           <MatchDetailsScreen
             onNavigate={buildNavigate(navigation)}
             matchData={route.params?.matchData as Match}
-            favourites={favourites}
-            onToggleFavourite={onToggleFavourite}
             navigation={navigation}
           />
         )}
@@ -182,14 +186,12 @@ function FixturesStack({ favourites, onToggleFavourite, selectedLeagueId }: { fa
   );
 }
 
-function TeamsStack({ favourites, onToggleFavourite, selectedLeagueId }: { favourites: Set<string>; onToggleFavourite: (id: string) => void; selectedLeagueId: string; }) {
+function TeamsStack({ selectedLeagueId }: { selectedLeagueId: string; }) {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="TeamsMain">
         {({ navigation }) => (
           <TeamsScreen
-            favourites={favourites}
-            onToggleFavourite={onToggleFavourite}
             selectedLeagueId={selectedLeagueId}
             navigation={navigation}
           />
@@ -219,25 +221,19 @@ function MoreStack({ selectedLeagueId, onLeagueChange }: { selectedLeagueId: str
   );
 }
 
-function MainTabs({ favourites, onToggleFavourite, selectedLeagueId, allMatches, allTeams, onLeagueChange }: { favourites: Set<string>; onToggleFavourite: (id: string) => void; selectedLeagueId: string; allMatches: Match[]; allTeams: Team[]; onLeagueChange: (id: string) => void; }) {
+function MainTabs({ selectedLeagueId, onLeagueChange }: { selectedLeagueId: string; onLeagueChange: (id: string) => void; }) {
   return (
-    <Tab.Navigator tabBar={props => <BottomNav {...props} />} screenOptions={{ headerShown: false }}>
+    <Tab.Navigator tabBar={props => <BottomNav {...props} />} screenOptions={{ headerShown: false, tabBarStyle: { padding: 0, margin: 0, backgroundColor: 'transparent', borderTopWidth: 0, elevation: 0 } }}>
       <Tab.Screen name="Home">
         {() => (
           <HomeStack
-            favourites={favourites}
-            onToggleFavourite={onToggleFavourite}
             selectedLeagueId={selectedLeagueId}
-            allMatches={allMatches}
-            allTeams={allTeams}
           />
         )}
       </Tab.Screen>
       <Tab.Screen name="Fixtures">
         {() => (
           <FixturesStack
-            favourites={favourites}
-            onToggleFavourite={onToggleFavourite}
             selectedLeagueId={selectedLeagueId}
           />
         )}
@@ -245,8 +241,6 @@ function MainTabs({ favourites, onToggleFavourite, selectedLeagueId, allMatches,
       <Tab.Screen name="Teams">
         {() => (
           <TeamsStack
-            favourites={favourites}
-            onToggleFavourite={onToggleFavourite}
             selectedLeagueId={selectedLeagueId}
           />
         )}
@@ -262,10 +256,14 @@ function MainTabs({ favourites, onToggleFavourite, selectedLeagueId, allMatches,
 }
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    Lexend_400Regular,
+    Lexend_500Medium,
+    Lexend_600SemiBold,
+    Lexend_700Bold,
+    Lexend_800ExtraBold,
+  });
   const [showSplash, setShowSplash] = useState(true);
-  const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
-  const [allMatches, setAllMatches] = useState<Match[]>([]);
-  const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [selectedLeagueId, setSelectedLeagueId] = useState('1');
 
   const LEGACY_LEAGUE_MAP: Record<string, string> = {
@@ -275,29 +273,23 @@ export default function App() {
 
   useEffect(() => {
     setupNotificationHandler();
-    Promise.all([getFavMatches(), getFavTeams(), getSelectedLeague()]).then(([m, t, league]) => {
-      setFavouriteIds(new Set([...m, ...t]));
+    getSelectedLeague().then(league => {
       setSelectedLeagueId(LEGACY_LEAGUE_MAP[league] ?? league);
     });
   }, []);
 
-  const handleToggleFavourite = useCallback(async (id: string) => {
-    const isMId = allMatches.some(m => m.id === id);
-    if (isMId) await toggleFavMatch(id);
-    else await toggleFavTeam(id);
-
-    setFavouriteIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, [allMatches]);
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color="#0D9F68" />
+      </View>
+    );
+  }
 
   if (showSplash) {
     return (
       <QueryClientProvider client={queryClient}>
-        <StatusBar barStyle="light-content" backgroundColor="#1C1B23" />
+        <StatusBar barStyle="light-content" backgroundColor="#000000" />
         <SplashScreen onFinish={() => setShowSplash(false)} />
       </QueryClientProvider>
     );
@@ -307,15 +299,11 @@ export default function App() {
     <GluestackUIProvider mode="dark">
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
-          <StatusBar barStyle="light-content" backgroundColor="#1C1B23" />
+          <StatusBar barStyle="light-content" backgroundColor="#000000" />
           <NavigationContainer>
-            <SafeAreaView style={{ flex: 1, backgroundColor: '#1C1B23' }} edges={['bottom']}>
+            <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }} edges={['bottom']}>
               <MainTabs
-                favourites={favouriteIds}
-                onToggleFavourite={handleToggleFavourite}
                 selectedLeagueId={selectedLeagueId}
-                allMatches={allMatches}
-                allTeams={allTeams}
                 onLeagueChange={setSelectedLeagueId}
               />
             </SafeAreaView>

@@ -1,12 +1,12 @@
-// ─── Colours (matches your Figma design exactly) ─────────────────────────────
+// ─── Colours (FotMob-inspired dark theme) ─────────────────────────────────────
 export const C = {
-  bg: '#1C1B23',
-  card: '#101C2E',
-  cardAlt: '#16243A',
-  border: '#26364F',
+  bg: '#000000',
+  card: '#1D1D1D',
+  cardAlt: '#353535',
+  border: '#3B3B3B',
   textPrimary: '#FFFFFF',
-  textSecondary: '#A9B4C2',
-  accent: '#20C997',       // teal / green
+  textSecondary: '#D9D9D9',
+  accent: '#0D9F68',
   gold: '#FFD166',
   red: '#EF476F',
 };
@@ -69,6 +69,39 @@ export interface APILineup {
   strPlayer: string;
   strPosition: string;
   strFormation: string;
+}
+
+export interface LineupPlayer {
+  id: number;
+  name: string;
+  short_name: string;
+  position: string;
+  jersey_number: number | null;
+  ai_score: number | null;
+}
+
+export interface TeamLineup {
+  team_id: number;
+  team_name: string;
+  formation: string;
+  confidence: number | null;
+  players: LineupPlayer[];
+  substitutes: LineupPlayer[];
+}
+
+export interface LineupResponse {
+  event_id: number;
+  lineup_status: string;
+  beta: boolean;
+  lineups: {
+    home: TeamLineup;
+    away: TeamLineup;
+  };
+  unavailable_players: {
+    home: any[];
+    away: any[];
+  };
+  updated_at: string;
 }
 
 // ─── App types ────────────────────────────────────────────────────────────────
@@ -138,4 +171,4 @@ export interface NewsArticle {
   content?: string;
 }
 
-export type Screen = 'splash' | 'home' | 'fixtures' | 'teams' | 'standings' | 'more' | 'match-details' | 'favourites' | 'news' | 'news-article' | 'results';
+export type Screen = 'splash' | 'home' | 'fixtures' | 'teams' | 'standings' | 'more' | 'match-details' | 'news' | 'news-article' | 'results';
