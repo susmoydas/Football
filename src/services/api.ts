@@ -469,6 +469,8 @@ async function toMatch(e: BSDEvent): Promise<Match> {
   };
 }
 
+// ─── Country → flagsapi.com URL ──────────────────────────────────────────────
+
 // ─── BSD Team → Team mapping ──────────────────────────────────────────────────
 
 interface BSDTeam {
@@ -483,7 +485,8 @@ function toTeam(t: BSDTeam): Team {
   return {
     id: String(t.id),
     name: t.name,
-    badge: countryToFlag(t.country) ?? '',
+    badge: '',
+    badgeUrl: `https://sports.bzzoiro.com/img/team/${t.id}/`,
     league: '',
     country: t.country,
   };
@@ -572,9 +575,6 @@ async function ensureTeamFlagCache(leagueId: string): Promise<Map<string, string
     });
     const list: BSDTeam[] = Array.isArray(data) ? data : data?.results ?? [];
     for (const t of list) {
-      const flag = countryToFlag(t.country) ?? '⚽';
-      teamFlagCache.set(t.name.toLowerCase(), flag);
-      teamFlagCache.set(String(t.id), flag);
       teamCountryCache.set(t.name.toLowerCase(), t.country);
     }
   } catch {}
@@ -588,23 +588,18 @@ function findLeague(leagueName: string): League | undefined {
   );
 }
 
-function enrichMatchFlags(matches: Match[], countryMap: Map<string, string>, leagueId?: string): Match[] {
+function enrichMatchFlags(matches: Match[]): Match[] {
   return matches.map(m => {
-    const homeKey = m.homeTeam.toLowerCase();
-    const awayKey = m.awayTeam.toLowerCase();
-    const leagueCountry = findLeague(m.league)?.country || '';
-    const homeCountry = teamCountryCache.get(homeKey) || leagueCountry;
-    const awayCountry = teamCountryCache.get(awayKey) || leagueCountry;
+    const hc = teamCountryCache.get(m.homeTeam.toLowerCase()) || findLeague(m.league)?.country || '';
+    const ac = teamCountryCache.get(m.awayTeam.toLowerCase()) || findLeague(m.league)?.country || '';
     return {
       ...m,
-      homeBadge: getWorldCupFlagUrl(m.homeTeam)
-        || countryMap.get(homeKey)
-        ?? countryMap.get(m.homeTeamId ?? '')
-        ?? countryToFlag(homeCountry || leagueCountry),
-      awayBadge: getWorldCupFlagUrl(m.awayTeam)
-        || countryMap.get(awayKey)
-        ?? countryMap.get(m.awayTeamId ?? '')
-        ?? countryToFlag(awayCountry || leagueCountry),
+      homeBadge: m.homeTeamId
+        ? `https://sports.bzzoiro.com/img/team/${m.homeTeamId}/`
+        : getWorldCupFlagUrl(m.homeTeam) || getWorldCupFlagUrl(hc) || undefined,
+      awayBadge: m.awayTeamId
+        ? `https://sports.bzzoiro.com/img/team/${m.awayTeamId}/`
+        : getWorldCupFlagUrl(m.awayTeam) || getWorldCupFlagUrl(ac) || undefined,
     };
   });
 }
@@ -632,7 +627,7 @@ export async function fetchLiveEvents(leagueId?: string): Promise<Match[]> {
       await ensureTeamFlagCache(leagueId);
     }
     const matches = await Promise.all(events.map(e => toMatch(e)));
-    return enrichMatchFlags(matches, teamFlagCache ?? new Map(), leagueId);
+    return enrichMatchFlags(matches);
   } catch {
     return [];
   }
@@ -645,7 +640,7 @@ export async function fetchLeagueEvents(leagueId: string): Promise<Match[]> {
       ensureTeamFlagCache(leagueId),
     ]);
     const matches = await mapEvents(eventsResp.data);
-    return enrichMatchFlags(matches, teamFlagCache ?? new Map());
+    return enrichMatchFlags(matches);
   } catch {
     return [];
   }
@@ -660,7 +655,7 @@ export async function fetchNextEvents(leagueId: string): Promise<Match[]> {
       ensureTeamFlagCache(leagueId),
     ]);
     const matches = await mapEvents(eventsResp.data);
-    return enrichMatchFlags(matches, teamFlagCache ?? new Map());
+    return enrichMatchFlags(matches);
   } catch {
     return [];
   }
@@ -675,7 +670,7 @@ export async function fetchLastEvents(leagueId: string): Promise<Match[]> {
       ensureTeamFlagCache(leagueId),
     ]);
     const matches = await mapEvents(eventsResp.data);
-    return enrichMatchFlags(matches, teamFlagCache ?? new Map());
+    return enrichMatchFlags(matches);
   } catch {
     return [];
   }
@@ -696,8 +691,7 @@ export async function fetchRecentResults(leagueId?: string): Promise<Match[]> {
     const { data } = await api.get('/events/', { params });
     const matches = await mapEvents(data);
     if (leagueId) {
-      await ensureTeamFlagCache(leagueId);
-      return enrichMatchFlags(matches, teamFlagCache ?? new Map());
+      return enrichMatchFlags(matches);
     }
     return matches;
   } catch {
@@ -710,7 +704,7 @@ export async function fetchEvent(eventId: string): Promise<Match | null> {
     const { data } = await api.get(`/events/${eventId}/`);
     if (!data) return null;
     const match = await toMatch(data);
-    const enriched = enrichMatchFlags([match], teamFlagCache ?? new Map());
+    const enriched = enrichMatchFlags([match]);
     return enriched[0] ?? null;
   } catch {
     return null;
@@ -767,12 +761,17 @@ interface BSDStandingsResponse {
 
 export async function fetchStandings(leagueId: string, _season?: string): Promise<Standing[]> {
   try {
+    await ensureTeamFlagCache(leagueId);
     const { data } = await api.get<BSDStandingsResponse>(`/leagues/${leagueId}/standings/`);
-    if (data.standings) return data.standings.map(toStanding);
+    const mapRow = (r: BSDStandingRow) => ({
+      ...toStanding(r),
+      badge: `https://sports.bzzoiro.com/img/team/${r.team_id}/`,
+    });
+    if (data.standings) return data.standings.map(mapRow);
     if (data.groups) {
       const all: Standing[] = [];
       for (const group of Object.values(data.groups)) {
-        all.push(...group.map(toStanding));
+        all.push(...group.map(mapRow));
       }
       return all;
     }

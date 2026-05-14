@@ -42,7 +42,6 @@ export default function TeamsScreen({ favourites, onToggleFavourite, selectedLea
         rightAction={{ icon: <HugeiconsIcon icon={StarIcon} size={18} color="#FFD700" />, onPress: () => navigation?.navigate('Home', { screen: 'Favourites' }) }}
       />
       <View style={{ flex: 1, backgroundColor: C.bg }}>
-      {/* Search */}
       <View style={s.searchRow}>
         <View style={s.searchBox}>
           <HugeiconsIcon icon={Search01Icon} size={18} color={C.textSecondary} style={{ marginRight: 8 }} />

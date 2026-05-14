@@ -45,18 +45,18 @@ const NAV_ITEMS: { id: string; icon: any; label: string }[] = [
 function BottomNav({ state, navigation }: { state: any; navigation: any }) {
   const active = state.routes[state.index].name;
   return (
-    <Box className="bg-background-0 border-t border-success-500/20 px-1 pt-1.5" style={{ paddingBottom: Platform.OS === 'ios' ? 20 : 8 }}>
+    <Box className="bg-background-0 border-t border-background-900 px-1 pt-1" style={{ paddingBottom: Platform.OS === 'ios' ? 20 : 8 }}>
       <HStack className="items-center">
         {NAV_ITEMS.map(item => {
           const isActive = active === item.id;
           return (
             <Pressable
               key={item.id}
-              className="flex-1 items-center py-0.5 relative"
+              className="flex-1 items-center py-1 relative"
               onPress={() => navigation.navigate(item.id)}
             >
-              <Box className={`absolute -top-1.5 left-[25%] right-[25%] h-[2px] rounded-sm ${isActive ? 'bg-success-500' : 'bg-transparent'}`} />
-              <HugeiconsIcon icon={item.icon} size={22} color={isActive ? '#20C997' : '#A9B4C2'} />
+              {isActive && <Box className="absolute -top-1 left-[30%] right-[30%] h-[2px] rounded-sm bg-success-500" />}
+              <HugeiconsIcon icon={item.icon} size={22} color={isActive ? '#20C997' : '#4A4A5A'} />
               <Text className={`text-[10px] font-semibold mt-0.5 ${isActive ? 'text-success-500' : 'text-typography-500'}`}>{item.label}</Text>
             </Pressable>
           );

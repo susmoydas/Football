@@ -40,12 +40,10 @@ export default function FixturesScreen({ onNavigate, favourites, onToggleFavouri
   };
 
   useEffect(() => { setLoading(true); load(); }, [selectedLeagueId]);
-
   const onRefresh = () => { setRefreshing(true); load(); };
 
   const filtered = filter === 'all' ? matches : matches.filter(m => m.status === filter);
 
-  // Group by date
   const byDate = new Map<string, Match[]>();
   filtered.forEach(m => {
     const list = byDate.get(m.date) ?? [];
@@ -53,7 +51,7 @@ export default function FixturesScreen({ onNavigate, favourites, onToggleFavouri
     byDate.set(m.date, list);
   });
 
-  if (loading) return <LoadingSpinner message="Loading fixtures…" />;
+  if (loading) return <LoadingSpinner message="Loading fixtures..." />;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
@@ -69,38 +67,35 @@ export default function FixturesScreen({ onNavigate, favourites, onToggleFavouri
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
         contentContainerStyle={{ paddingBottom: 48 }}
       >
-      {/* Filter bar */}
-      <View style={s.filterBar}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
-          {([['all', 'All'], ['live', '🔴 Live'], ['upcoming', 'Upcoming'], ['finished', 'Finished']] as [Filter, string][]).map(([f, label]) => (
-            <FilterPill key={f} label={label} active={filter === f} onPress={() => setFilter(f)} />
-          ))}
-        </ScrollView>
-      </View>
+        <View style={s.filterBar}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
+            {([['all', 'All'], ['live', '● Live'], ['upcoming', 'Upcoming'], ['finished', 'Finished']] as [Filter, string][]).map(([f, label]) => (
+              <FilterPill key={f} label={label} active={filter === f} onPress={() => setFilter(f)} />
+            ))}
+          </ScrollView>
+        </View>
 
-      <View style={{ padding: 16 }}>
-        {byDate.size === 0 ? (
-          <EmptyState title="No matches found" description="Check back later for upcoming fixtures" />
-        ) : (
-          Array.from(byDate.keys()).sort().map(date => (
-            <View key={date} style={{ marginBottom: 20 }}>
-              <Text style={s.dateLabel}>
-                {new Date(date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
-              </Text>
-              {byDate.get(date)!.map(m => (
-                <MatchCard
-                  key={m.id} match={m}
-                  isFavourite={favourites.has(m.id)}
-                  onToggleFavourite={() => onToggleFavourite(m.id)}
-                  onPress={() => onNavigate('match-details', m)}
-                />
-              ))}
-            </View>
-          ))
-        )}
-        <View style={{ height: 24 }} />
-      </View>
-    </ScrollView>
+        <View style={{ padding: 16 }}>
+          {byDate.size === 0 ? (
+            <EmptyState title="No matches found" description="Check back later for upcoming fixtures" />
+          ) : (
+            Array.from(byDate.keys()).sort().map(date => (
+              <View key={date} style={{ marginBottom: 20 }}>
+                <Text style={s.dateLabel}>
+                  {new Date(date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </Text>
+                {byDate.get(date)!.map(m => (
+                  <MatchCard
+                    key={m.id} match={m}
+                    onPress={() => onNavigate('match-details', m)}
+                  />
+                ))}
+              </View>
+            ))
+          )}
+          <View style={{ height: 24 }} />
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

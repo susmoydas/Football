@@ -15,7 +15,6 @@ import { Card } from '@/components/ui/card';
 import { Badge, BadgeText } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallbackText } from '@/components/ui/avatar';
 import { Spinner } from '@/components/ui/spinner';
-import { Divider } from '@/components/ui/divider';
 
 const TEAM_BG_CLASSES = [
   'bg-success-100', 'bg-success-200', 'bg-success-300', 'bg-success-400', 'bg-success-500',
@@ -42,17 +41,20 @@ function getInitials(name?: string): string {
 export function TeamBadge({ uri, size = 40, name, fallbackText }: { uri?: string; size?: number; name?: string; fallbackText?: string }) {
   const [imgError, setImgError] = React.useState(false);
   const avatarSize = size <= 24 ? 'xs' : size <= 32 ? 'sm' : size <= 48 ? 'md' : size <= 64 ? 'lg' : 'xl';
+  const initials = getInitials(name);
+  const bgClass = getTeamBgClass(name);
+
   if (uri && (uri.startsWith('http') || uri.startsWith('file') || uri.startsWith('data:')) && !imgError) {
     return (
-      <Avatar size={avatarSize} className={getTeamBgClass(name)}>
+      <Avatar size={avatarSize} className={bgClass}>
         <AvatarImage source={{ uri }} onError={() => setImgError(true)} />
+        <AvatarFallbackText>{initials}</AvatarFallbackText>
       </Avatar>
     );
   }
-  const displayText = fallbackText || (uri && !uri.startsWith('http') ? uri : undefined) || getInitials(name);
   return (
-    <Avatar size={avatarSize} className={getTeamBgClass(name)}>
-      <AvatarFallbackText>{displayText}</AvatarFallbackText>
+    <Avatar size={avatarSize} className={bgClass}>
+      <AvatarFallbackText>{initials}</AvatarFallbackText>
     </Avatar>
   );
 }
@@ -60,82 +62,75 @@ export function TeamBadge({ uri, size = 40, name, fallbackText }: { uri?: string
 export function StatusBadge({ status, progress }: { status: Match['status']; progress?: string }) {
   if (status === 'live') {
     return (
-      <Badge action="success" variant="outline" size="sm">
-        <Box className="w-1.5 h-1.5 rounded-full bg-success-500 mr-1" />
-        <BadgeText>LIVE{progress ? ` ${progress}'` : ''}</BadgeText>
+      <Badge action="error" variant="solid" size="sm" className="bg-error-600">
+        <Box className="w-1.5 h-1.5 rounded-full bg-white mr-1" />
+        <BadgeText className="text-white font-bold">LIVE{progress ? ` ${progress}'` : ''}</BadgeText>
       </Badge>
     );
   }
   if (status === 'finished') {
     return (
-      <Badge action="error" variant="outline" size="sm">
-        <BadgeText>FINISHED</BadgeText>
+      <Badge action="muted" variant="outline" size="sm">
+        <BadgeText>FT</BadgeText>
       </Badge>
     );
   }
   return (
     <Badge action="muted" variant="outline" size="sm">
-      <BadgeText>UPCOMING</BadgeText>
+      <BadgeText>{progress || 'UPCOMING'}</BadgeText>
     </Badge>
   );
 }
 
 interface MatchCardProps {
   match: Match;
-  isFavourite?: boolean;
-  onToggleFavourite?: () => void;
   onPress?: () => void;
 }
 
-export function MatchCard({ match, isFavourite, onToggleFavourite, onPress }: MatchCardProps) {
+export function MatchCard({ match, onPress }: MatchCardProps) {
   const isLive = match.status === 'live';
   const isFinished = match.status === 'finished';
+  const showScore = isLive || isFinished;
   return (
     <Pressable onPress={onPress}>
-      <Card size="sm" variant="outline" className="rounded-xl mb-2.5">
-        <HStack className="justify-between items-center mb-2">
-          <Text size="xs" className="text-typography-500 font-medium flex-1" numberOfLines={1}>{match.league}</Text>
-          <HStack className="items-center gap-1.5">
-            <StatusBadge status={match.status} progress={match.progress} />
-            {!isLive && !isFinished && match.time && (
-              <Text size="xs" className="text-typography-500 font-semibold">{match.time}</Text>
-            )}
-            <Pressable onPress={onToggleFavourite} hitSlop={8}>
-              <HugeiconsIcon icon={StarIcon} size={18} color={isFavourite ? '#FFD700' : '#A9B4C2'} />
-            </Pressable>
-          </HStack>
+      <Card size="sm" variant="outline" className="rounded-xl mb-2.5 px-4 pt-3 pb-1">
+        {/* Header: league + status/time */}
+        <HStack className="justify-between items-center mb-1">
+          <Text size="2xs" className="text-typography-500 font-medium flex-1" numberOfLines={1}>{match.league}</Text>
+          {isLive ? (
+            <HStack className="items-center gap-1">
+              <Box className="w-1.5 h-1.5 rounded-full bg-error-500" />
+              <Text size="2xs" className="text-error-500 font-bold">LIVE</Text>
+              {match.progress && <Text size="2xs" className="text-typography-500 font-medium">{match.progress}'</Text>}
+            </HStack>
+          ) : isFinished ? (
+            <Text size="2xs" className="text-typography-500 font-semibold">FT</Text>
+          ) : (
+            <Text size="2xs" className="text-typography-500 font-semibold">{match.time || ''}</Text>
+          )}
         </HStack>
-        <VStack className="gap-1 mt-1">
-          <HStack className="items-center gap-2">
-            <TeamBadge uri={match.homeBadge} size={28} name={match.homeTeam} />
-            <Text size="sm" className="text-typography-0 font-medium flex-1" numberOfLines={1}>{match.homeTeam}</Text>
-            <Box className="min-w-[28px] items-end">
-              {isLive || isFinished ? (
-                <Text size="xl" className={`font-bold ${isLive ? 'text-success-500' : 'text-typography-0'}`}>{match.homeScore != null ? match.homeScore : '-'}</Text>
-              ) : null}
-            </Box>
-          </HStack>
-          <HStack className="items-center ml-9">
-            <Divider className="flex-1" />
-            <Text size="xs" className="text-typography-500 mx-2 font-semibold">{!isLive && !isFinished ? (match.time || 'vs') : 'vs'}</Text>
-            <Divider className="flex-1" />
-          </HStack>
-          <HStack className="items-center gap-2">
-            <TeamBadge uri={match.awayBadge} size={28} name={match.awayTeam} />
-            <Text size="sm" className="text-typography-0 font-medium flex-1" numberOfLines={1}>{match.awayTeam}</Text>
-            <Box className="min-w-[28px] items-end">
-              {isLive || isFinished ? (
-                <Text size="xl" className={`font-bold ${isLive ? 'text-success-500' : 'text-typography-0'}`}>{match.awayScore != null ? match.awayScore : '-'}</Text>
-              ) : null}
-            </Box>
-          </HStack>
-        </VStack>
-        {isFinished && (
-          <>
-            <Divider className="mt-2" />
-            <Text size="xs" className="text-typography-500 font-medium mt-2">Full Time</Text>
-          </>
-        )}
+
+        {/* Home team */}
+        <HStack className="items-center py-2.5">
+          <TeamBadge uri={match.homeBadge} size={36} name={match.homeTeam} />
+          <Text size="sm" className="text-typography-0 font-semibold flex-1 ml-3" numberOfLines={1}>{match.homeTeam}</Text>
+          {showScore ? (
+            <Text size="2xl" className={`font-extrabold w-9 text-right ${isLive ? 'text-error-500' : 'text-typography-0'}`}>
+              {match.homeScore != null ? match.homeScore : '-'}
+            </Text>
+          ) : null}
+        </HStack>
+
+        {/* Away team */}
+        <HStack className="items-center py-2.5 border-t" style={{ borderTopColor: '#26364F' }}>
+          <TeamBadge uri={match.awayBadge} size={36} name={match.awayTeam} />
+          <Text size="sm" className="text-typography-0 font-semibold flex-1 ml-3" numberOfLines={1}>{match.awayTeam}</Text>
+          {showScore ? (
+            <Text size="2xl" className={`font-extrabold w-9 text-right ${isLive ? 'text-error-500' : 'text-typography-0'}`}>
+              {match.awayScore != null ? match.awayScore : '-'}
+            </Text>
+          ) : null}
+        </HStack>
       </Card>
     </Pressable>
   );

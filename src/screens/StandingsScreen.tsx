@@ -49,7 +49,6 @@ export default function StandingsScreen({ selectedLeagueId, navigation }: Props)
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
       >
-      {/* League selector */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.leagueBar} contentContainerStyle={{ gap: 8, paddingRight: 16 }}>
         {FEATURED_LEAGUES.map(l => (
           <TouchableOpacity

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import { StarIcon } from '@hugeicons/core-free-icons';
+import { StarIcon, Share04Icon } from '@hugeicons/core-free-icons';
 import { C, Match, Screen } from '../types';
 import { fetchEvent } from '../services/api';
 import { TeamBadge, StatBar, LoadingSpinner, Header } from '../components';
@@ -37,17 +37,10 @@ export default function MatchDetailsScreen({ onNavigate, matchData, favourites, 
     ? new Date(match.date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
     : '';
 
-  const statusColor = isLive ? C.red : isFinished ? C.textSecondary : C.accent;
-  const statusLabel = isLive
-    ? (match.progress ? `LIVE ${match.progress}'` : 'LIVE')
-    : isFinished
-    ? 'Full Time'
-    : match.time;
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
       <Header
-        title={`${match.homeTeam} vs ${match.awayTeam}`}
+        title="Match Details"
         showBack={true}
         onBackPress={() => navigation?.goBack()}
         rightAction={{
@@ -77,9 +70,15 @@ export default function MatchDetailsScreen({ onNavigate, matchData, favourites, 
               <Text style={s.heroTeamName} numberOfLines={2}>{match.awayTeam}</Text>
             </View>
           </View>
-          <View style={[s.statusBadge, { backgroundColor: statusColor + '18' }]}>
-            {isLive && <View style={[s.statusDot, { backgroundColor: statusColor }]} />}
-            <Text style={[s.statusText, { color: statusColor }]}>{statusLabel}</Text>
+          <View style={s.statusWrap}>
+            {isLive && <View style={s.statusDot} />}
+            <Text style={[s.statusText, isLive && { color: C.red }]}>
+              {isLive
+                ? (match.progress ? `LIVE ${match.progress}'` : 'LIVE')
+                : isFinished
+                ? 'Full Time'
+                : match.time}
+            </Text>
           </View>
         </View>
 
@@ -231,7 +230,6 @@ export default function MatchDetailsScreen({ onNavigate, matchData, favourites, 
 }
 
 const s = StyleSheet.create({
-  // ─── Hero ───
   hero: {
     alignItems: 'center',
     paddingVertical: 28,
@@ -281,27 +279,28 @@ const s = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
-  statusBadge: {
+  statusWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
+    backgroundColor: C.cardAlt,
     marginTop: 16,
   },
   statusDot: {
     width: 7,
     height: 7,
     borderRadius: 4,
+    backgroundColor: C.red,
   },
   statusText: {
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.5,
+    color: C.textSecondary,
   },
-
-  // ─── Tabs ───
   tabs: {
     flexDirection: 'row',
     backgroundColor: C.bg,
@@ -331,8 +330,6 @@ const s = StyleSheet.create({
     backgroundColor: C.accent,
     borderRadius: 2,
   },
-
-  // ─── Card ───
   card: {
     backgroundColor: C.card,
     borderRadius: 16,
@@ -349,8 +346,6 @@ const s = StyleSheet.create({
   cardBody: {
     padding: 0,
   },
-
-  // ─── Info Row ───
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -380,15 +375,11 @@ const s = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-
-  // ─── Divider ───
   divider: {
     height: 1,
     backgroundColor: C.border,
     marginVertical: 0,
   },
-
-  // ─── Empty State ───
   emptyState: {
     alignItems: 'center',
     paddingVertical: 32,
@@ -402,8 +393,6 @@ const s = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
   },
-
-  // ─── Events Timeline ───
   timeline: {
     paddingTop: 8,
   },
@@ -457,8 +446,6 @@ const s = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
-
-  // ─── Lineups ───
   lineupHeader: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -63,8 +63,6 @@ export default function FavouritesScreen({ onNavigate, favourites, onToggleFavou
             : favMatches.map(m => (
               <MatchCard
                 key={m.id} match={m}
-                isFavourite
-                onToggleFavourite={() => { onToggleFavourite(m.id); reload(); }}
                 onPress={() => onNavigate('match-details', m)}
               />
             ))
