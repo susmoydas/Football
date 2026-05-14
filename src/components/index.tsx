@@ -362,6 +362,9 @@ export function LoadingSpinner({ message }: { message?: string }) {
 }
 
 export function FilterPill({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  const showLiveDot = label.startsWith('● ');
+  const pillLabel = showLiveDot ? label.slice(2) : label;
+
   return (
     <Button
       size="sm"
@@ -370,7 +373,14 @@ export function FilterPill({ label, active, onPress }: { label: string; active: 
       className="rounded-full"
       onPress={onPress}
     >
-      <ButtonText>{label}</ButtonText>
+      {showLiveDot ? (
+        <HStack className="items-center gap-1">
+          <Text size="xs" className="text-error-500">●</Text>
+          <ButtonText>{pillLabel}</ButtonText>
+        </HStack>
+      ) : (
+        <ButtonText>{pillLabel}</ButtonText>
+      )}
     </Button>
   );
 }
