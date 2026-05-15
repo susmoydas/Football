@@ -12,7 +12,7 @@ import { checkAndNotifyMatches } from '../services/notifications';
 import { getFavMatches } from '../services/storage';
 import {
   WorldCupBanner, MatchCard, FilterPill, SectionHeader, LoadingSpinner,
-  NewsFeedCard,
+  NewsFeedCard, SkeletonMatchCard, SkeletonNewsCard, Skeleton,
 } from '../components';
 
 interface Props {
@@ -95,7 +95,22 @@ export default function HomeScreen({ onNavigate, selectedLeagueId, onLeagueChang
     : tab === 'tomorrow' ? tomorrowMatches
     : allMatches;
 
-  if (loading) return <LoadingSpinner message="Loading matches..." />;
+  if (loading) return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
+      <ScrollView style={s.container} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+        <View style={s.inner}>
+          <Skeleton variant="rounded" startColor="bg-background-100" className="w-full rounded-xl mb-5" style={{ height: 180 }} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }} contentContainerStyle={{ gap: 8 }}>
+            {[1, 2, 3, 4].map(i => (
+              <Skeleton key={i} variant="rounded" startColor="bg-background-100" className="h-8 rounded-full" style={{ width: 72 }} />
+            ))}
+          </ScrollView>
+          {[1, 2, 3].map(i => <SkeletonMatchCard key={i} />)}
+          <SkeletonNewsCard />
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>

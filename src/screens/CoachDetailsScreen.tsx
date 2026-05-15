@@ -50,9 +50,7 @@ export default function CoachDetailsScreen({ coachData, navigation }: Props) {
             )}
           </Box>
           <Heading size="2xl" className="text-typography-0 font-bold">{data.name}</Heading>
-          <Box className="bg-success-100 rounded-lg px-3 py-1 mt-2">
-            <Text size="sm" className="text-success-500 font-bold">{data.role}</Text>
-          </Box>
+          <Text size="sm" className="text-typography-0 font-bold mt-2">{data.role}</Text>
         </Card>
 
         {/* Info Grid */}

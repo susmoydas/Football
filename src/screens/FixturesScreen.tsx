@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { C, Match, Screen } from '../types';
 import { fetchNextEvents, fetchLastEvents } from '../services/api';
-import { MatchCard, FilterPill, LoadingSpinner, EmptyState } from '../components';
+import { MatchCard, FilterPill, LoadingSpinner, EmptyState, SkeletonMatchCard, Skeleton } from '../components';
 
 interface Props {
   onNavigate: (screen: Screen, data?: any) => void;
@@ -45,7 +45,23 @@ export default function FixturesScreen({ onNavigate, selectedLeagueId, navigatio
     byDate.set(m.date, list);
   });
 
-  if (loading) return <LoadingSpinner message="Loading fixtures..." />;
+  if (loading) return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
+      <View style={{ height: 8 }} />
+      <ScrollView style={{ flex: 1, backgroundColor: C.bg }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }}>
+        <View style={s.filterBar}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            {[1, 2, 3, 4].map(i => (
+              <Skeleton key={i} variant="rounded" startColor="bg-background-100" className="h-8 rounded-full" style={{ width: 80 }} />
+            ))}
+          </ScrollView>
+        </View>
+        <View style={{ padding: 16 }}>
+          {[1, 2, 3].map(i => <SkeletonMatchCard key={i} />)}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>

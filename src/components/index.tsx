@@ -235,7 +235,7 @@ export function TeamCard({ team, onPress, listMode }: TeamCardProps) {
   );
 }
 
-export function StandingsTable({ rows, qualifyCount = 4 }: { rows: Standing[]; qualifyCount?: number }) {
+export function StandingsTable({ rows, qualifyCount = 4, onTeamPress }: { rows: Standing[]; qualifyCount?: number; onTeamPress?: (row: Standing) => void }) {
   return (
     <Card size="sm" variant="elevated" className="rounded-xl overflow-hidden">
       <HStack className="bg-background-0 py-2.5 px-3">
@@ -249,22 +249,23 @@ export function StandingsTable({ rows, qualifyCount = 4 }: { rows: Standing[]; q
         <Text size="xs" className="flex-1 text-success-500 font-semibold text-center">Pts</Text>
       </HStack>
       {rows.map((row, i) => (
-        <HStack
-          key={row.teamId || row.name}
-          className={`py-2.5 px-3 items-center ${i < qualifyCount ? 'border-l-[3px] border-l-success-500' : ''}`}
-        >
-          <Text size="xs" className="flex-[0.4] text-typography-500 text-center">{row.position}</Text>
-          <HStack className="flex-[3] items-center gap-1.5">
-            <TeamBadge uri={row.badge} size={24} name={row.name} />
-            <Text size="xs" className="text-typography-0 text-left flex-1" numberOfLines={1}>{row.name}</Text>
+        <AnimatedPressable key={row.teamId || row.name} onPress={onTeamPress ? () => onTeamPress(row) : undefined}>
+          <HStack
+            className={`py-2.5 px-3 items-center ${i < qualifyCount ? 'border-l-[3px] border-l-success-500' : ''}`}
+          >
+            <Text size="xs" className="flex-[0.4] text-typography-500 text-center">{row.position}</Text>
+            <HStack className="flex-[3] items-center gap-1.5">
+              <TeamBadge uri={row.badge} size={24} name={row.name} />
+              <Text size="xs" className="text-typography-0 text-left flex-1" numberOfLines={1}>{row.name}</Text>
+            </HStack>
+            <Text size="xs" className="flex-1 text-typography-0 text-center">{row.played}</Text>
+            <Text size="xs" className="flex-1 text-typography-0 text-center">{row.won}</Text>
+            <Text size="xs" className="flex-1 text-typography-0 text-center">{row.drawn}</Text>
+            <Text size="xs" className="flex-1 text-typography-0 text-center">{row.lost}</Text>
+            <Text size="xs" className="flex-1 text-typography-0 text-center">{row.goalDiff > 0 ? '+' : ''}{row.goalDiff}</Text>
+            <Text size="xs" className="flex-1 text-success-500 font-bold text-center">{row.points}</Text>
           </HStack>
-          <Text size="xs" className="flex-1 text-typography-0 text-center">{row.played}</Text>
-          <Text size="xs" className="flex-1 text-typography-0 text-center">{row.won}</Text>
-          <Text size="xs" className="flex-1 text-typography-0 text-center">{row.drawn}</Text>
-          <Text size="xs" className="flex-1 text-typography-0 text-center">{row.lost}</Text>
-          <Text size="xs" className="flex-1 text-typography-0 text-center">{row.goalDiff > 0 ? '+' : ''}{row.goalDiff}</Text>
-          <Text size="xs" className="flex-1 text-success-500 font-bold text-center">{row.points}</Text>
-        </HStack>
+        </AnimatedPressable>
       ))}
     </Card>
   );
@@ -292,16 +293,16 @@ const BANNER_URL = 'https://drive.usercontent.google.com/download?id=1SuJcTUuFY0
 export function WorldCupBanner() {
   const [imgError, setImgError] = React.useState(false);
   return (
-    <Box className="rounded-xl overflow-hidden mb-5" style={{ height: 180 }}>
+    <Box className="rounded-xl overflow-hidden mb-5" style={{ width: '100%', height: 180 }}>
       {!imgError ? (
         <Image
           source={{ uri: BANNER_URL }}
           resizeMode="cover"
-          style={{ width: '100%', height: '100%' }}
+          style={{ width: '100%', height: 180 }}
           onError={() => setImgError(true)}
         />
       ) : (
-        <Box className="w-full h-full bg-background-100 items-center justify-center">
+        <Box className="bg-background-100 items-center justify-center" style={{ width: '100%', height: 180 }}>
           <Text size="sm" className="text-typography-500">Banner</Text>
         </Box>
       )}

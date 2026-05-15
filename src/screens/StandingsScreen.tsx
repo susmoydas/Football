@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { C, Standing } from '../types';
+import { C, Standing, Team } from '../types';
 import { fetchStandings, FEATURED_LEAGUES } from '../services/api';
-import { StandingsTable, LoadingSpinner, EmptyState, FilterPill } from '../components';
+import { StandingsTable, LoadingSpinner, EmptyState, FilterPill, SkeletonStandingsRows, Skeleton } from '../components';
 
-interface Props { selectedLeagueId: string; navigation?: any; }
+interface Props { selectedLeagueId: string; navigation?: any; onNavigate?: (screen: string, data?: any) => void; }
 
 const SEASON = '2024-2025';
 
-export default function StandingsScreen({ selectedLeagueId, navigation }: Props) {
+export default function StandingsScreen({ selectedLeagueId, navigation, onNavigate }: Props) {
   const [rows, setRows] = useState<Standing[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -32,7 +32,22 @@ export default function StandingsScreen({ selectedLeagueId, navigation }: Props)
 
   const activeName = FEATURED_LEAGUES.find(l => l.id === leagueId)?.name ?? '';
 
-  if (loading) return <LoadingSpinner message="Loading standings…" />;
+  if (loading) return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
+      <View style={{ height: 8 }} />
+      <ScrollView style={{ flex: 1, backgroundColor: C.bg }} showsVerticalScrollIndicator={false}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.leagueBar} contentContainerStyle={{ gap: 8, paddingRight: 16 }}>
+          {[1, 2, 3].map(i => (
+            <Skeleton key={i} variant="rounded" startColor="bg-background-100" className="h-8 rounded-full" style={{ width: 100 }} />
+          ))}
+        </ScrollView>
+        <View style={{ padding: 16 }}>
+          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3.5 w-48 mb-3" />
+          <SkeletonStandingsRows count={6} />
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
@@ -59,7 +74,14 @@ export default function StandingsScreen({ selectedLeagueId, navigation }: Props)
         {rows.length === 0 ? (
           <EmptyState title="Standings not available" description="Try another league or pull to refresh" />
         ) : (
-          <StandingsTable rows={rows} qualifyCount={4} />
+          <StandingsTable
+            rows={rows}
+            qualifyCount={4}
+            onTeamPress={row => onNavigate?.('team-details', {
+              team: { id: row.teamId, name: row.name, badge: row.badge || '', league: '', country: '' } as Team,
+              leagueId: selectedLeagueId,
+            })}
+          />
         )}
 
         <View style={s.legend}>

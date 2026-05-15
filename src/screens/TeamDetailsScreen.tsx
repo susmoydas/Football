@@ -175,7 +175,7 @@ function CoachCard({ staff }: { staff: CoachStaff }) {
         {/* Name + Role + Country */}
         <VStack className="flex-1 ml-4">
           <Text size="md" className="text-typography-0 font-bold">{staff.name}</Text>
-          <Text size="xs" className="text-success-500 font-semibold mt-0.5">{staff.role}</Text>
+          <Text size="xs" className="text-typography-0 font-semibold mt-0.5">{staff.role}</Text>
           {staff.country ? (
             <Text size="2xs" className="text-typography-500 mt-0.5">{staff.country}</Text>
           ) : null}

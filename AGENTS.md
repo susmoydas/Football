@@ -12,7 +12,7 @@
 
 ## Commands
 ```sh
-npm start          # expo start
+npm start          # EXPO_OFFLINE=1 expo start --clear (avoids undici v8 fetch bug on Node 26)
 npm run ios        # expo start --ios
 npm run android    # expo start --android
 npx tsc --noEmit   # typecheck (no lint/test scripts)
@@ -54,4 +54,5 @@ src/
 - Path alias `@/` → `./src/*` (tsconfig.json + babel module-resolver)
 - gluestack-ui generated wrappers in `src/components/ui/` have pre-existing TS errors (ignore)
 - Node.js v26: Metro needs `--clear` flag every start (auto-set in `npm start` via package.json)
+- Node.js v26 + undici v8: built-in `fetch` throws `UND_ERR_SOCKET` connecting to `api.expo.dev` — `EXPO_OFFLINE=1` skips that check
 

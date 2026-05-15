@@ -242,7 +242,39 @@ function StandingsStack({ selectedLeagueId }: { selectedLeagueId: string }) {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="StandingsMain">
-        {({ navigation }) => <StandingsScreen selectedLeagueId={selectedLeagueId} navigation={navigation} />}
+        {({ navigation }) => (
+          <StandingsScreen
+            selectedLeagueId={selectedLeagueId}
+            navigation={navigation}
+            onNavigate={buildNavigate(navigation)}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="TeamDetails">
+        {({ navigation, route }: { navigation: any; route: { params?: any } }) => (
+          <TeamDetailsScreen
+            navigation={navigation}
+            teamData={route.params?.teamData as Team}
+            selectedLeagueId={route.params?.leagueId as string}
+            onNavigate={buildNavigate(navigation)}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="PlayerProfile">
+        {({ navigation, route }: { navigation: any; route: { params?: any } }) => (
+          <PlayerDetailsScreen
+            navigation={navigation}
+            playerData={route.params?.playerData as Player}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="CoachProfile">
+        {({ navigation, route }: { navigation: any; route: { params?: any } }) => (
+          <CoachDetailsScreen
+            navigation={navigation}
+            coachData={route.params?.coachData as CoachStaff}
+          />
+        )}
       </Stack.Screen>
     </Stack.Navigator>
   );

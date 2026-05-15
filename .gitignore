@@ -4,3 +4,8 @@ node_modules
 dist/
 android/app/build/
 .DS_Store
+.vscode/
+*.apk
+*.aab
+*.keystore
+*.hprof

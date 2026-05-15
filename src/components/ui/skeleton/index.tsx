@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useRef, useEffect } from 'react';
 import type { VariantProps } from '@gluestack-ui/nativewind-utils';
 import { Animated, Easing, Platform, View } from 'react-native';
 import { skeletonStyle, skeletonTextStyle } from './styles';
@@ -32,50 +32,53 @@ const Skeleton = forwardRef<
     },
     ref
   ) => {
-    const pulseAnim = new Animated.Value(1);
+    const pulseAnim = useRef(new Animated.Value(1)).current;
     const customTimingFunction = Easing.bezier(0.4, 0, 0.6, 1);
     const fadeDuration = 0.6;
-    const animationDuration = (fadeDuration * 10000) / speed; // Convert seconds to milliseconds
+    const animationDuration = (fadeDuration * 10000) / speed;
 
     const pulse = Animated.sequence([
       Animated.timing(pulseAnim, {
-        toValue: 1, // Start with opacity 1
-        duration: animationDuration / 2, // Third of the animation duration
+        toValue: 1,
+        duration: animationDuration / 2,
         easing: customTimingFunction,
         useNativeDriver: Platform.OS !== 'web',
       }),
       Animated.timing(pulseAnim, {
         toValue: 0.75,
-        duration: animationDuration / 2, // Third of the animation duration
+        duration: animationDuration / 2,
         easing: customTimingFunction,
         useNativeDriver: Platform.OS !== 'web',
       }),
       Animated.timing(pulseAnim, {
         toValue: 1,
-        duration: animationDuration / 2, // Third of the animation duration
+        duration: animationDuration / 2,
         easing: customTimingFunction,
         useNativeDriver: Platform.OS !== 'web',
       }),
     ]);
 
-    if (!isLoaded) {
-      Animated.loop(pulse).start();
-      return (
-        <Animated.View
-          style={{ opacity: pulseAnim }}
-          className={`${startColor} ${skeletonStyle({
-            variant,
-            class: className,
-          })}`}
-          {...props}
-          ref={ref}
-        />
-      );
-    } else {
-      Animated.loop(pulse).stop();
+    useEffect(() => {
+      if (!isLoaded) {
+        const loop = Animated.loop(pulse);
+        loop.start();
+        return () => loop.stop();
+      }
+    }, [isLoaded, pulse]);
 
-      return children;
-    }
+    if (isLoaded) return children;
+
+    return (
+      <Animated.View
+        style={{ opacity: pulseAnim }}
+        className={`${startColor} ${skeletonStyle({
+          variant,
+          class: className,
+        })}`}
+        {...props}
+        ref={ref}
+      />
+    );
   }
 );
 

@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { C, Match, Screen } from '../types';
 import { fetchRecentResults, FEATURED_LEAGUES } from '../services/api';
-import { TeamBadge, LoadingSpinner, EmptyState, Header } from '../components';
+import { TeamBadge, LoadingSpinner, EmptyState, Header, Skeleton } from '../components';
 
 interface Props {
   onNavigate?: (screen: Screen, data?: any) => void;
@@ -39,7 +39,40 @@ export default function ResultsScreen({ onNavigate, selectedLeagueId, navigation
     byDate.set(m.date, list);
   });
 
-  if (loading) return <LoadingSpinner message="Loading results…" />;
+  if (loading) return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
+      <Header title="Results" showBack={true} onBackPress={() => navigation?.goBack()} />
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        <View style={{ padding: 16 }}>
+          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3.5 w-48 mb-3" />
+          <View style={s.card}>
+            {[1, 2, 3].map(i => (
+              <View key={i} style={[s.matchRow, i > 1 && s.matchRowBorder]}>
+                <View style={s.matchTeams}>
+                  <View style={s.teamGroup}>
+                    <Skeleton variant="circular" startColor="bg-background-100" className="w-6 h-6" />
+                    <Skeleton variant="rounded" startColor="bg-background-100" className="h-3.5 flex-1" />
+                  </View>
+                  <View style={s.teamGroup}>
+                    <Skeleton variant="circular" startColor="bg-background-100" className="w-6 h-6" />
+                    <Skeleton variant="rounded" startColor="bg-background-100" className="h-3.5 flex-1" />
+                  </View>
+                </View>
+                <View style={s.scoreGroup}>
+                  <Skeleton variant="rounded" startColor="bg-background-100" className="h-5 w-5" />
+                  <Skeleton variant="rounded" startColor="bg-background-100" className="h-4 w-2" />
+                  <Skeleton variant="rounded" startColor="bg-background-100" className="h-5 w-5" />
+                </View>
+                <View style={s.badgeWrap}>
+                  <Skeleton variant="rounded" startColor="bg-background-100" className="h-5 w-8 rounded-md" />
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
