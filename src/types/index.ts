@@ -172,4 +172,43 @@ export interface NewsArticle {
   content?: string;
 }
 
-export type Screen = 'splash' | 'home' | 'fixtures' | 'teams' | 'standings' | 'more' | 'match-details' | 'news' | 'news-article' | 'results';
+export type Screen = 'splash' | 'home' | 'fixtures' | 'teams' | 'standings' | 'more' | 'match-details' | 'news' | 'news-article' | 'results' | 'team-details' | 'player-profile' | 'coach-profile';
+
+export interface Player {
+  id: string;
+  name: string;
+  shortName: string;
+  position: string;
+  specificPosition: string;
+  jerseyNumber: number | null;
+  nationality: string;
+  dateOfBirth: string;
+  heightCm: number | null;
+  weightKg: number | null;
+  preferredFoot: string;
+  marketValueEur: number | null;
+  contractUntil: string | null;
+  availability: string;
+  nationalTeamId: number | null;
+}
+
+export interface CoachStaff {
+  id: string;
+  name: string;
+  role: string;
+  country: string;
+  tacticalProfile?: string;
+  preferredFormation?: string;
+  matchesTotal?: number;
+  wins?: number;
+  draws?: number;
+  losses?: number;
+  winPct?: number;
+  avgGoalsScored?: number;
+  avgGoalsConceded?: number;
+  avgPossession?: number | null;
+  cleanSheetPct?: number;
+  bttsPct?: number;
+  over25Pct?: number;
+}
+

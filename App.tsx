@@ -20,7 +20,7 @@ import { Text } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { Home01Icon, Calendar03Icon, UserGroupIcon, ChartIcon, Menu02Icon } from '@hugeicons/core-free-icons';
-import { Screen, Match } from './src/types';
+import { Screen, Match, Team, Player, CoachStaff } from './src/types';
 import { getSelectedLeague } from './src/services/storage';
 import { initNotifications } from './src/services/notifications';
 
@@ -34,6 +34,9 @@ import ResultsScreen from './src/screens/ResultsScreen';
 import MoreScreen from './src/screens/MoreScreen';
 import NewsScreen from './src/screens/NewsScreen';
 import NewsArticleScreen from './src/screens/NewsArticleScreen';
+import TeamDetailsScreen from './src/screens/TeamDetailsScreen';
+import PlayerDetailsScreen from './src/screens/PlayerDetailsScreen';
+import CoachDetailsScreen from './src/screens/CoachDetailsScreen';
 
 import './global.css';
 
@@ -115,6 +118,12 @@ const buildNavigate = (navigation: any) => (screen: Screen | string, data?: any)
       return navigation.navigate('NewsArticle', { article: data });
     case 'results':
       return navigation.navigate('Results');
+    case 'team-details':
+      return navigation.navigate('TeamDetails', { teamData: data?.team, leagueId: data?.leagueId });
+    case 'player-profile':
+      return navigation.navigate('PlayerProfile', { playerData: data });
+    case 'coach-profile':
+      return navigation.navigate('CoachProfile', { coachData: data });
     default:
       return undefined;
   }
@@ -195,6 +204,33 @@ function TeamsStack({ selectedLeagueId }: { selectedLeagueId: string; }) {
           <TeamsScreen
             selectedLeagueId={selectedLeagueId}
             navigation={navigation}
+            onNavigate={buildNavigate(navigation)}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="TeamDetails">
+        {({ navigation, route }: { navigation: any; route: { params?: any } }) => (
+          <TeamDetailsScreen
+            navigation={navigation}
+            teamData={route.params?.teamData as Team}
+            selectedLeagueId={route.params?.leagueId as string}
+            onNavigate={buildNavigate(navigation)}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="PlayerProfile">
+        {({ navigation, route }: { navigation: any; route: { params?: any } }) => (
+          <PlayerDetailsScreen
+            navigation={navigation}
+            playerData={route.params?.playerData as Player}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="CoachProfile">
+        {({ navigation, route }: { navigation: any; route: { params?: any } }) => (
+          <CoachDetailsScreen
+            navigation={navigation}
+            coachData={route.params?.coachData as CoachStaff}
           />
         )}
       </Stack.Screen>

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Match, Team, Standing, League, MatchStatus, LineupResponse, NewsArticle } from '../types';
+import { Match, Team, Standing, League, MatchStatus, LineupResponse, NewsArticle, Player, CoachStaff } from '../types';
 import { BSD } from '../config';
 
 const api = axios.create({
@@ -11,6 +11,7 @@ const api = axios.create({
 // ─── Country → Flag Emoji ─────────────────────────────────────────────────────
 
 export function countryToFlag(country: string): string {
+  if (!country) return '⚽';
   const map: Record<string, string> = {
     'england': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
     'spain': '🇪🇸',
@@ -773,9 +774,148 @@ export async function fetchTeam(teamId: string): Promise<Team | null> {
   try {
     const { data } = await api.get(`/teams/${teamId}/`);
     if (!data) return null;
-    return toTeam(data);
+    const team = toTeam(data);
+    if (data.venue_id) {
+      try {
+        const venueRes = await api.get(`/venues/${data.venue_id}/`);
+        if (venueRes.data?.name) {
+          team.stadium = venueRes.data.name;
+        }
+      } catch {}
+    }
+    return team;
   } catch {
     return null;
+  }
+}
+
+// ─── BSD Player → Player mapping ─────────────────────────────────────────────
+
+interface BSDPlayer {
+  id: number;
+  name: string;
+  short_name: string;
+  position: string;
+  specific_position: string;
+  jersey_number: number | null;
+  nationality: string;
+  date_of_birth: string;
+  height_cm: number | null;
+  weight_kg: number | null;
+  preferred_foot: string;
+  market_value_eur: number | null;
+  contract_until: string | null;
+  availability: string;
+  national_team_id: number | null;
+}
+
+function toPlayer(p: BSDPlayer): Player {
+  return {
+    id: String(p.id),
+    name: p.name,
+    shortName: p.short_name,
+    position: p.position,
+    specificPosition: p.specific_position,
+    jerseyNumber: p.jersey_number,
+    nationality: p.nationality,
+    dateOfBirth: p.date_of_birth,
+    heightCm: p.height_cm,
+    weightKg: p.weight_kg,
+    preferredFoot: p.preferred_foot || '',
+    marketValueEur: p.market_value_eur,
+    contractUntil: p.contract_until,
+    availability: p.availability,
+    nationalTeamId: p.national_team_id,
+  };
+}
+
+export async function fetchTeamSquad(teamId: string): Promise<Player[]> {
+  try {
+    const { data } = await api.get('/players/', {
+      params: { team_id: teamId, limit: 50 },
+    });
+    const list = Array.isArray(data) ? data : data?.results ?? [];
+    return list.map(toPlayer);
+  } catch {
+    return [];
+  }
+}
+
+interface BSDManager {
+  id: number;
+  name: string;
+  short_name: string;
+  country: string;
+  tactical_profile: string;
+  preferred_formation: string;
+  current_team_id: number;
+  matches_total: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  win_pct: number;
+  avg_goals_scored: number;
+  avg_goals_conceded: number;
+  avg_possession: number | null;
+  clean_sheet_pct: number;
+  btts_pct: number;
+  over_25_pct: number;
+}
+
+function toCoachStaff(m: BSDManager): CoachStaff {
+  return {
+    id: String(m.id),
+    name: m.name,
+    role: 'Head Coach',
+    country: m.country,
+    tacticalProfile: m.tactical_profile,
+    preferredFormation: m.preferred_formation,
+    matchesTotal: m.matches_total,
+    wins: m.wins,
+    draws: m.draws,
+    losses: m.losses,
+    winPct: m.win_pct,
+    avgGoalsScored: m.avg_goals_scored,
+    avgGoalsConceded: m.avg_goals_conceded,
+    avgPossession: m.avg_possession,
+    cleanSheetPct: m.clean_sheet_pct,
+    bttsPct: m.btts_pct,
+    over25Pct: m.over_25_pct,
+  };
+}
+
+export async function fetchTeamCoachingStaff(teamId: string): Promise<CoachStaff[]> {
+  try {
+    const { data } = await api.get('/managers/', {
+      params: { team_id: teamId, limit: 10 },
+    });
+    const list = Array.isArray(data) ? data : data?.results ?? [];
+    return list.map(toCoachStaff);
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchCoach(coachId: string): Promise<CoachStaff | null> {
+  try {
+    const { data } = await api.get(`/managers/${coachId}/`);
+    if (!data) return null;
+    return toCoachStaff(data);
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchTeamEvents(teamId: string, status?: string, limit = 10): Promise<Match[]> {
+  try {
+    const params: Record<string, any> = { team_id: teamId, limit };
+    if (status) params.status = status;
+    const { data } = await api.get('/events/', { params });
+    const events = extractEvents(data);
+    const matches = await Promise.all(events.map(e => toMatch(e)));
+    return enrichMatchFlags(matches);
+  } catch {
+    return [];
   }
 }
 

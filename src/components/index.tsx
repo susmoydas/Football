@@ -15,6 +15,9 @@ import { VStack } from '@/components/ui/vstack';
 import { Card } from '@/components/ui/card';
 import { Badge, BadgeText } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
+import { Skeleton } from '@/components/ui/skeleton';
+
+export { Skeleton } from '@/components/ui/skeleton';
 
 const TEAM_BG_CLASSES = [
   'bg-success-100', 'bg-success-200', 'bg-success-300', 'bg-success-400', 'bg-success-500',
@@ -101,7 +104,7 @@ export function MatchCard({ match, onPress }: MatchCardProps) {
     : '';
 
   return (
-    <Pressable onPress={onPress}>
+    <AnimatedPressable onPress={onPress}>
       <Card
         size="sm"
         variant="elevated"
@@ -189,7 +192,7 @@ export function MatchCard({ match, onPress }: MatchCardProps) {
           )}
         </HStack>
       </Card>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -202,8 +205,8 @@ interface TeamCardProps {
 export function TeamCard({ team, onPress, listMode }: TeamCardProps) {
   if (listMode) {
     return (
-      <Pressable onPress={onPress}>
-        <Card size="sm" variant="elevated" className="rounded-xl flex-row items-center mb-2">
+      <AnimatedPressable onPress={onPress}>
+        <Card size="sm" className="rounded-xl flex-row items-center mb-2 px-4 py-3">
           <TeamBadge uri={team.badgeUrl || team.badge} size={48} name={team.name} />
           <Box className="flex-1 ml-3">
             <Text size="sm" className="text-typography-0 font-semibold">{team.name}</Text>
@@ -214,12 +217,12 @@ export function TeamCard({ team, onPress, listMode }: TeamCardProps) {
             )}
           </Box>
         </Card>
-      </Pressable>
+      </AnimatedPressable>
     );
   }
   return (
-    <Pressable onPress={onPress} className="flex-1">
-      <Card size="sm" variant="elevated" className="rounded-xl items-center">
+    <AnimatedPressable onPress={onPress} className="flex-1">
+      <Card size="sm" className="rounded-xl items-center w-full px-4 py-4">
         <TeamBadge uri={team.badgeUrl || team.badge} size={60} name={team.name} />
         <Text size="sm" className="text-typography-0 font-semibold mt-2 text-center" numberOfLines={2}>{team.name}</Text>
         {team.country ? (
@@ -228,7 +231,7 @@ export function TeamCard({ team, onPress, listMode }: TeamCardProps) {
           <Text size="xs" className="text-typography-500 mt-0.5 text-center">{team.badge}</Text>
         )}
       </Card>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -284,14 +287,24 @@ export function StatBar({ label, home, away }: { label: string; home: number; aw
   );
 }
 
+const BANNER_URL = 'https://drive.usercontent.google.com/download?id=1SuJcTUuFY0dnTKXieddtXCoqi2-eD8kz&export=download';
+
 export function WorldCupBanner() {
+  const [imgError, setImgError] = React.useState(false);
   return (
     <Box className="rounded-xl overflow-hidden mb-5" style={{ height: 180 }}>
-      <ImageBackground
-        source={require('../../assets/Banner.png')}
-        resizeMode="cover"
-        style={{ width: '100%', height: '100%' }}
-      />
+      {!imgError ? (
+        <Image
+          source={{ uri: BANNER_URL }}
+          resizeMode="cover"
+          style={{ width: '100%', height: '100%' }}
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <Box className="w-full h-full bg-background-100 items-center justify-center">
+          <Text size="sm" className="text-typography-500">Banner</Text>
+        </Box>
+      )}
     </Box>
   );
 }
@@ -299,7 +312,7 @@ export function WorldCupBanner() {
 export function NewsFeedCard({ article, onPress }: { article: NewsArticle; onPress?: () => void }) {
   const [imgError, setImgError] = React.useState(false);
   return (
-    <Pressable onPress={onPress}>
+    <AnimatedPressable onPress={onPress}>
       <Card size="sm" variant="elevated" className="rounded-xl overflow-hidden mb-3 p-0">
         <Box className="bg-background-100 items-center justify-center overflow-hidden">
           {article.image && !imgError ? (
@@ -319,7 +332,7 @@ export function NewsFeedCard({ article, onPress }: { article: NewsArticle; onPre
           </HStack>
         </VStack>
       </Card>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -365,6 +378,142 @@ export function LoadingSpinner({ message }: { message?: string }) {
       <Spinner color="#0D9F68" />
       {message && <Text size="xs" className="text-typography-500">{message}</Text>}
     </VStack>
+  );
+}
+
+export function AnimatedPressable({ children, onPress, style, className, ...props }: { children: React.ReactNode; onPress?: () => void; style?: any; className?: string }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 350,
+      useNativeDriver: true,
+    }).start();
+  }, [fadeAnim]);
+
+  const handlePressIn = () => {
+    Animated.spring(scale, {
+      toValue: 0.97,
+      friction: 8,
+      tension: 120,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scale, {
+      toValue: 1,
+      friction: 6,
+      tension: 120,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <Pressable className={className} onPress={onPress} onPressIn={handlePressIn} onPressOut={handlePressOut} {...props}>
+      <Animated.View style={[{ transform: [{ scale }], opacity: fadeAnim }, style]}>
+        {children}
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+export function SkeletonMatchCard() {
+  return (
+    <Card size="sm" variant="elevated" className="rounded-xl mb-3 px-4 pt-3 pb-4">
+      <HStack className="justify-between items-start mb-3">
+        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 w-24" />
+        <VStack className="items-end gap-1">
+          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 w-20" />
+          <Skeleton variant="rounded" startColor="bg-background-100" className="h-2.5 w-28" />
+        </VStack>
+      </HStack>
+      <HStack className="items-start justify-between mb-3">
+        <VStack className="items-center flex-1 gap-2">
+          <Skeleton variant="circular" startColor="bg-background-100" className="w-12 h-12" />
+          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 w-16" />
+        </VStack>
+        <VStack className="items-center px-2 pt-1">
+          <Skeleton variant="rounded" startColor="bg-background-100" className="h-8 w-16" />
+        </VStack>
+        <VStack className="items-center flex-1 gap-2">
+          <Skeleton variant="circular" startColor="bg-background-100" className="w-12 h-12" />
+          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 w-16" />
+        </VStack>
+      </HStack>
+      <HStack className="items-center justify-center">
+        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 w-16" />
+      </HStack>
+    </Card>
+  );
+}
+
+export function SkeletonTeamCardList() {
+  return (
+    <Card size="sm" variant="elevated" className="rounded-xl flex-row items-center mb-2 px-4 py-3">
+      <Skeleton variant="circular" startColor="bg-background-100" className="w-12 h-12" />
+      <VStack className="flex-1 ml-3 gap-1.5">
+        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3.5 w-32" />
+        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 w-20" />
+      </VStack>
+    </Card>
+  );
+}
+
+export function SkeletonTeamCardGrid() {
+  return (
+    <Card size="sm" variant="elevated" className="rounded-xl items-center px-4 py-4 flex-1">
+      <Skeleton variant="circular" startColor="bg-background-100" className="w-14 h-14 mb-2" />
+      <Skeleton variant="rounded" startColor="bg-background-100" className="h-3.5 w-20 mb-1" />
+      <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 w-16" />
+    </Card>
+  );
+}
+
+export function SkeletonNewsCard() {
+  return (
+    <Card size="sm" variant="elevated" className="rounded-xl overflow-hidden mb-3 p-0">
+      <Skeleton variant="rounded" startColor="bg-background-100" className="w-full h-40" />
+      <VStack className="p-3.5 gap-2">
+        <Skeleton variant="rounded" startColor="bg-background-100" className="h-4 w-full" />
+        <Skeleton variant="rounded" startColor="bg-background-100" className="h-4 w-3/4" />
+        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 w-24" />
+      </VStack>
+    </Card>
+  );
+}
+
+export function SkeletonStandingsRows({ count = 6 }: { count?: number }) {
+  return (
+    <Card size="sm" variant="elevated" className="rounded-xl overflow-hidden">
+      <HStack className="bg-background-0 py-2.5 px-3">
+        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 w-5" />
+        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-[3] ml-2" />
+        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
+        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
+        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
+        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
+        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
+        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
+      </HStack>
+      {Array.from({ length: count }).map((_, i) => (
+        <HStack key={i} className="py-2.5 px-3 items-center">
+          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 w-5" />
+          <HStack className="flex-[3] items-center gap-1.5 ml-2">
+            <Skeleton variant="circular" startColor="bg-background-100" className="w-6 h-6" />
+            <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1" />
+          </HStack>
+          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
+          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
+          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
+          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
+          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
+          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
+        </HStack>
+      ))}
+    </Card>
   );
 }
 

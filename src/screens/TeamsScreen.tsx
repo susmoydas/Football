@@ -5,14 +5,15 @@ import { HugeiconsIcon } from '@hugeicons/react-native';
 import { Search01Icon } from '@hugeicons/core-free-icons';
 import { C, Team } from '../types';
 import { fetchTeamsByLeague, FEATURED_LEAGUES } from '../services/api';
-import { TeamCard, LoadingSpinner, EmptyState } from '../components';
+import { TeamCard, LoadingSpinner, EmptyState, SkeletonTeamCardGrid, Skeleton } from '../components';
 
 interface Props {
   selectedLeagueId: string;
   navigation?: any;
+  onNavigate?: (screen: string, data?: any) => void;
 }
 
-export default function TeamsScreen({ selectedLeagueId, navigation }: Props) {
+export default function TeamsScreen({ selectedLeagueId, navigation, onNavigate }: Props) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -29,7 +30,19 @@ export default function TeamsScreen({ selectedLeagueId, navigation }: Props) {
 
   const filtered = teams.filter(t => t.name.toLowerCase().includes(search.toLowerCase()));
 
-  if (loading) return <LoadingSpinner message="Loading teams…" />;
+  if (loading) return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
+      <View style={{ flex: 1, backgroundColor: C.bg }}>
+        <View style={s.searchRow}>
+          <Skeleton variant="rounded" startColor="bg-background-100" className="h-10 flex-1 rounded-xl" />
+        </View>
+        <View style={{ flexDirection: 'row', padding: 16, gap: 10 }}>
+          <SkeletonTeamCardGrid />
+          <SkeletonTeamCardGrid />
+        </View>
+      </View>
+    </SafeAreaView>
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
@@ -58,8 +71,9 @@ export default function TeamsScreen({ selectedLeagueId, navigation }: Props) {
           columnWrapperStyle={{ gap: 10, marginBottom: 10 }}
           renderItem={({ item }) => (
             <TeamCard
-                team={item}
-              />
+              team={item}
+              onPress={() => onNavigate?.('team-details', { team: item, leagueId: selectedLeagueId })}
+            />
           )}
         />
       )}
@@ -71,11 +85,11 @@ export default function TeamsScreen({ selectedLeagueId, navigation }: Props) {
 const s = StyleSheet.create({
   searchRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 16, borderBottomWidth: 1, borderBottomColor: C.border,
+    padding: 16,
   },
   searchBox: {
     flex: 1, flexDirection: 'row', alignItems: 'center',
-    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10,
+    backgroundColor: '#1D1D1D', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10,
   },
   searchInput: { flex: 1, color: C.textPrimary, fontSize: 14 },
 });
