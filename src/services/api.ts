@@ -391,6 +391,8 @@ interface BSDEvent {
   round_number: number | null;
   round_name: string;
   venue_id: number | null;
+  venue?: string;
+  venue_name?: string;
   live_websocket?: boolean;
 }
 
@@ -449,7 +451,44 @@ async function getLeagueName(id: number | null): Promise<string> {
   return featured?.name ?? String(id);
 }
 
+let venueNameCache: Map<number, string> | null = null;
+
+function extractVenueName(data: any): string {
+  if (!data) return '';
+  if (typeof data === 'string') return data;
+  return data.name || data.venue || data.venue_name || data.strVenue || '';
+}
+
+async function getVenueName(id: number | null): Promise<string> {
+  if (!id) return '';
+  if (!venueNameCache) venueNameCache = new Map();
+  const cached = venueNameCache.get(id);
+  if (cached) return cached;
+
+  try {
+    const { data } = await api.get(`/venues/${id}`);
+    const venue = extractVenueName(data);
+    if (venue) {
+      venueNameCache.set(id, venue);
+      return venue;
+    }
+  } catch {}
+
+  try {
+    const { data } = await api.get('/venues/', { params: { id, limit: 1 } });
+    const payload = Array.isArray(data) ? data[0] : data?.results?.[0] ?? data;
+    const venue = extractVenueName(payload);
+    if (venue) {
+      venueNameCache.set(id, venue);
+      return venue;
+    }
+  } catch {}
+
+  return '';
+}
+
 async function toMatch(e: BSDEvent): Promise<Match> {
+  const venueFromEvent = e.venue || e.venue_name || '';
   return {
     id: String(e.id),
     league: e.league_name ?? await getLeagueName(e.league_id),
@@ -460,7 +499,7 @@ async function toMatch(e: BSDEvent): Promise<Match> {
     status: resolveStatus(e.status),
     time: formatTime(e.event_date),
     date: formatDate(e.event_date),
-    venue: '',
+    venue: venueFromEvent || await getVenueName(e.venue_id),
     progress: e.current_minute != null ? String(e.current_minute) : undefined,
     homeTeamId: e.home_team_id != null ? String(e.home_team_id) : undefined,
     awayTeamId: e.away_team_id != null ? String(e.away_team_id) : undefined,

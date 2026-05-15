@@ -14,21 +14,30 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.football2026code.app"
+      "bundleIdentifier": "com.footballiq.m"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#07111F"
       },
-      "package": "com.football2026code.app"
+      "package": "com.footballiq.m",
+      "permissions": [
+        "POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-asset",
-      "expo-font"
-    ]
+      "expo-font",
+      "expo-notifications"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6cacda8d-94a8-4caf-9347-35990cb95c86"
+      }
+    }
   }
 }

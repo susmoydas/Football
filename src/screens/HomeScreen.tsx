@@ -8,6 +8,8 @@ import {
   fetchLiveEvents, fetchLeagueEvents, fetchNextEvents, fetchFootballNews,
   FEATURED_LEAGUES,
 } from '../services/api';
+import { checkAndNotifyMatches } from '../services/notifications';
+import { getFavMatches } from '../services/storage';
 import {
   WorldCupBanner, MatchCard, FilterPill, SectionHeader, LoadingSpinner,
   NewsFeedCard,
@@ -69,6 +71,9 @@ export default function HomeScreen({ onNavigate, selectedLeagueId, onLeagueChang
         return true;
       });
       setAllMatches(merged);
+
+      const favIds = new Set(await getFavMatches());
+      checkAndNotifyMatches(merged, favIds).catch(error => console.warn('Failed to send notifications:', error));
     } catch {
       setLiveMatches([]);
       setAllMatches([]);

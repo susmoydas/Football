@@ -114,14 +114,21 @@ export function MatchCard({ match, onPress }: MatchCardProps) {
           elevation: 5,
         }}
       >
-        {/* Header: League + Date */}
-        <HStack className="justify-between items-center mb-4">
+        {/* Header: League + Date + Venue */}
+        <HStack className="justify-between items-start mb-3">
           <Text size="2xs" className="text-typography-500 font-semibold uppercase tracking-wider flex-1" numberOfLines={1}>
             {match.league}
           </Text>
-          <Text size="2xs" className="text-typography-500 font-medium">
-            {formattedDate}
-          </Text>
+          <VStack className="items-end">
+            <Text size="2xs" className="text-typography-500 font-medium">
+              {formattedDate}
+            </Text>
+            {match.venue ? (
+              <Text size="2xs" className="text-typography-500" numberOfLines={1} style={{ fontSize: 11, marginTop: 2 }}>
+                {match.venue}
+              </Text>
+            ) : null}
+          </VStack>
         </HStack>
 
         {/* Main row: [Home Logo] [Score] [Away Logo] + team names below */}

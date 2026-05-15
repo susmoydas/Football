@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.football2026code.app'
+    namespace 'com.footballiq.m'
     defaultConfig {
-        applicationId 'com.football2026code.app'
+        applicationId 'com.footballiq.m'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

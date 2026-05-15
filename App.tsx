@@ -22,7 +22,7 @@ import { HugeiconsIcon } from '@hugeicons/react-native';
 import { Home01Icon, Calendar03Icon, UserGroupIcon, ChartIcon, Menu02Icon } from '@hugeicons/core-free-icons';
 import { Screen, Match } from './src/types';
 import { getSelectedLeague } from './src/services/storage';
-import { setupNotificationHandler } from './src/services/notifications';
+import { initNotifications } from './src/services/notifications';
 
 import SplashScreen from './src/screens/SplashScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -76,7 +76,7 @@ function BottomNav({ state, navigation }: { state: any; navigation: any }) {
               </Box>
               <Text
                 style={{
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: isActive ? '700' : '500',
                   color: isActive ? '#0D9F68' : '#5A5A6E',
                   marginTop: 3,
@@ -274,7 +274,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    setupNotificationHandler();
+    initNotifications();
     getSelectedLeague().then(league => {
       setSelectedLeagueId(LEGACY_LEAGUE_MAP[league] ?? league);
     });

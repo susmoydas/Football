@@ -99,12 +99,11 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange }: Props) 
       <View style={s.card}>
         <View style={s.settingRow}>
           <View style={s.settingLeft}>
-            <View style={[s.settingIcon, { backgroundColor: C.accent + '20' }]}>
+            <View style={[s.settingIcon, { backgroundColor: C.cardAlt }]}>
               <HugeiconsIcon icon={Notification02Icon} size={20} color={C.accent} />
             </View>
             <View>
               <Text style={s.settingTitle}>Enable Notifications</Text>
-              <Text style={s.settingValue}>Google-style match alerts</Text>
             </View>
           </View>
           <Switch
@@ -119,8 +118,8 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange }: Props) 
           <>
             <View style={[s.settingRow, { borderTopWidth: 1, borderTopColor: C.border }]}>
               <View style={s.settingLeft}>
-                <View style={[s.settingIcon, { backgroundColor: C.gold + '20' }]}>
-                  <HugeiconsIcon icon={Calendar03Icon} size={20} color={C.gold} />
+                <View style={[s.settingIcon, { backgroundColor: C.cardAlt }]}>
+                  <HugeiconsIcon icon={Calendar03Icon} size={20} color={C.accent} />
                 </View>
                 <Text style={s.settingTitle}>Match Today</Text>
               </View>
@@ -134,8 +133,8 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange }: Props) 
 
             <View style={[s.settingRow, { borderTopWidth: 1, borderTopColor: C.border }]}>
               <View style={s.settingLeft}>
-                <View style={[s.settingIcon, { backgroundColor: C.red + '20' }]}>
-                  <HugeiconsIcon icon={FootballIcon} size={20} color={C.red} />
+                <View style={[s.settingIcon, { backgroundColor: C.cardAlt }]}>
+                  <HugeiconsIcon icon={FootballIcon} size={20} color={C.accent} />
                 </View>
                 <Text style={s.settingTitle}>Match Running</Text>
               </View>
@@ -149,8 +148,8 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange }: Props) 
 
             <View style={[s.settingRow, { borderTopWidth: 1, borderTopColor: C.border }]}>
               <View style={s.settingLeft}>
-                <View style={[s.settingIcon, { backgroundColor: C.gold + '20' }]}>
-                  <HugeiconsIcon icon={CheckmarkCircle01Icon} size={20} color={C.gold} />
+                <View style={[s.settingIcon, { backgroundColor: C.cardAlt }]}>
+                  <HugeiconsIcon icon={CheckmarkCircle01Icon} size={20} color={C.accent} />
                 </View>
                 <Text style={s.settingTitle}>Match Done</Text>
               </View>

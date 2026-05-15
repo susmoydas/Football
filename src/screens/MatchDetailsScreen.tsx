@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { Calendar03Icon, Clock01Icon, MapPinIcon, ChampionIcon, ChartAverageIcon, FootballIcon, ClipboardIcon } from '@hugeicons/core-free-icons';
@@ -243,41 +244,61 @@ export default function MatchDetailsScreen({ onNavigate, matchData, navigation }
 
           {/* ── Events ── */}
           {tab === 'events' && (
-            <View style={s.card}>
-              <Text style={s.cardTitle}>Match Events</Text>
+            <View style={{ gap: 8 }}>
               {hasScore ? (
-                <View style={s.timeline}>
-                  {[
+                (() => {
+                  const rawEvents = [
                     { time: "23'", type: 'goal', team: 'home', player: 'Player Name' },
                     { time: "35'", type: 'yellow', team: 'away', player: 'Player Name' },
                     { time: "56'", type: 'goal', team: 'home', player: 'Player Name' },
                     { time: "72'", type: 'goal', team: 'away', player: 'Player Name' },
-                  ].map((e, i) => {
-                    const isHome = e.team === 'home';
-                    const isGoal = e.type === 'goal';
+                  ];
+                  let homeCount = 0, awayCount = 0;
+                  return rawEvents.map((e, i) => {
+                    if (e.type === 'goal') {
+                      if (e.team === 'home') homeCount++;
+                      else awayCount++;
+                    }
+                    const score = `${homeCount} - ${awayCount}`;
+                    const teamName = e.team === 'home' ? match.homeTeam : match.awayTeam;
+                    const teamBadge = e.team === 'home' ? match.homeBadge : match.awayBadge;
                     return (
-                      <View key={i} style={s.eventRow}>
-                        <View style={s.eventTimeCol}>
-                          <Text style={s.eventTime}>{e.time}</Text>
-                        </View>
-                        <View style={s.eventLineCol}>
-                          <View style={[s.eventDot, { backgroundColor: isGoal ? C.gold : C.red }]}>
-                            <HugeiconsIcon icon={FootballIcon} size={12} color={isGoal ? '#000' : '#FFF'} />
+                      <View key={i} style={s.eventCard}>
+                        <View style={s.eventMinuteCol}>
+                          <View style={s.eventMinuteBox}>
+                            <Text style={s.eventMinuteText}>{e.time}</Text>
                           </View>
-                          {i < 3 && <View style={s.eventLine} />}
+                          {e.type === 'goal' && (
+                            <Text style={s.eventScoreText}>{score}</Text>
+                          )}
+                        </View>
+                        <View style={s.eventIconCol}>
+                          {e.type === 'goal' ? (
+                            <View style={s.goalIconCircle}>
+                              <HugeiconsIcon icon={FootballIcon} size={14} color="#000" />
+                            </View>
+                          ) : (
+                            <View style={s.yellowCardBox} />
+                          )}
                         </View>
                         <View style={s.eventInfoCol}>
-                          <Text style={s.eventLabel}>{isGoal ? 'Goal' : 'Yellow Card'}</Text>
-                          <Text style={s.eventTeam}>{isHome ? match.homeTeam : match.awayTeam}</Text>
+                          <Text style={s.eventTitle}>{e.type === 'goal' ? 'Goal' : 'Yellow Card'}</Text>
+                          <Text style={s.eventPlayer}>{e.player}</Text>
+                        </View>
+                        <View style={s.eventTeamCol}>
+                          <TeamBadge uri={teamBadge} size={28} name={teamName} />
+                          <Text style={s.eventTeamName} numberOfLines={1}>{teamName}</Text>
                         </View>
                       </View>
                     );
-                  })}
-                </View>
+                  });
+                })()
               ) : (
-                <View style={s.emptyState}>
-                  <HugeiconsIcon icon={ClipboardIcon} size={30} color={C.textSecondary} />
-                  <Text style={s.emptyText}>Events available after kick-off</Text>
+                <View style={s.card}>
+                  <View style={s.emptyState}>
+                    <HugeiconsIcon icon={ClipboardIcon} size={30} color={C.textSecondary} />
+                    <Text style={s.emptyText}>Events available after kick-off</Text>
+                  </View>
                 </View>
               )}
             </View>
@@ -313,6 +334,12 @@ export default function MatchDetailsScreen({ onNavigate, matchData, navigation }
                         nestedScrollEnabled
                       >
                         <View style={s.formationField}>
+                          <LinearGradient
+                            colors={['#1a5c2a', '#2d8a3e', '#1a5c2a']}
+                            style={StyleSheet.absoluteFill}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 0, y: 1 }}
+                          />
                           {buildFormationRows(team.players, team.formation).map((row, rowIndex) => (
                             <View
                               key={`${team.team_id}-${rowIndex}`}
@@ -328,7 +355,7 @@ export default function MatchDetailsScreen({ onNavigate, matchData, navigation }
                                   activeOpacity={0.8}
                                   onPress={() => setSelectedPlayer(selectedPlayer === player.id ? null : player.id)}
                                 >
-                                  <PlayerAvatar playerId={player.id} name={player.name} size={56} />
+                                  <PlayerAvatar playerId={player.id} name={player.name} size={48} />
                                   <Text style={s.playerNumber}>{player.jersey_number ? `#${player.jersey_number}` : ''}</Text>
                                   <Text style={s.playerNameSmall} numberOfLines={1}>{player.short_name}</Text>
                                   <Text style={s.playerPositionSmall}>{positionLabel(player.position)}</Text>
@@ -362,7 +389,8 @@ export default function MatchDetailsScreen({ onNavigate, matchData, navigation }
                                 activeOpacity={0.7}
                                 onPress={() => setSelectedPlayer(selectedPlayer === p.id ? null : p.id)}
                               >
-                                <PlayerAvatar playerId={p.id} name={p.name} />
+                                <PlayerAvatar playerId={p.id} name={p.name} size={36} />
+
                                 <View style={s.playerInfo}>
                                   <Text style={s.playerName}>{p.short_name}</Text>
                                   <Text style={s.playerPosition}>{positionLabel(p.position)}{p.jersey_number ? ` · #${p.jersey_number}` : ''}</Text>
@@ -583,58 +611,87 @@ const s = StyleSheet.create({
     fontSize: 15,
     textAlign: 'center',
   },
-  timeline: {
-    paddingTop: 8,
-  },
-  eventRow: {
+  // ── Event Card ──
+  eventCard: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    minHeight: 56,
-  },
-  eventTimeCol: {
-    width: 40,
     alignItems: 'center',
-    paddingTop: 10,
+    backgroundColor: C.card,
+    borderRadius: 14,
+    padding: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
-  eventTime: {
+  eventMinuteCol: {
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  eventMinuteBox: {
+    backgroundColor: C.border,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  eventMinuteText: {
     color: C.textSecondary,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
   },
-  eventLineCol: {
-    width: 32,
-    alignItems: 'center',
+  eventScoreText: {
+    color: C.textSecondary,
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 4,
   },
-  eventDot: {
+  eventIconCol: {
+    marginRight: 10,
+  },
+  goalIconCircle: {
     width: 28,
     height: 28,
     borderRadius: 14,
+    backgroundColor: '#22C55E',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 1,
   },
-  eventLine: {
-    position: 'absolute',
-    top: 28,
-    width: 2,
-    flex: 1,
-    bottom: 0,
-    backgroundColor: C.border,
+  yellowCardBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: '#FFD166',
   },
   eventInfoCol: {
     flex: 1,
-    paddingTop: 8,
-    paddingLeft: 8,
   },
-  eventLabel: {
+  eventTitle: {
     color: C.textPrimary,
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  eventTeam: {
+  eventPlayer: {
     color: C.textSecondary,
-    fontSize: 14,
+    fontSize: 13,
     marginTop: 2,
+  },
+  eventTeamCol: {
+    alignItems: 'center',
+    marginLeft: 8,
+    maxWidth: 80,
+  },
+  eventTeamName: {
+    color: C.textSecondary,
+    fontSize: 10,
+    fontWeight: '500',
+    marginTop: 3,
+    textAlign: 'center',
   },
   lineupHeader: {
     flexDirection: 'row',
@@ -702,11 +759,12 @@ const s = StyleSheet.create({
     marginTop: 2,
   },
   formationField: {
-    backgroundColor: C.cardAlt,
     borderRadius: 18,
     paddingVertical: 18,
     paddingHorizontal: 12,
     marginBottom: 14,
+    overflow: 'hidden',
+    position: 'relative',
   },
   formationRow: {
     flexDirection: 'row',
@@ -723,7 +781,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 4,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: C.bg,
   },
   playerSpotSelected: {
     backgroundColor: C.accent + '22',

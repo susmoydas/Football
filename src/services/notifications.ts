@@ -24,6 +24,17 @@ async function getNotificationsModule() {
   }
 }
 
+async function ensureNotificationChannel() {
+  const Notifications = await getNotificationsModule();
+  if (!Notifications || Platform.OS !== 'android') return;
+
+  await Notifications.setNotificationChannelAsync('match-updates', {
+    name: 'Match Updates',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 100, 50, 100],
+  });
+}
+
 export async function setupNotificationHandler() {
   const Notifications = await getNotificationsModule();
   if (!Notifications) return;
@@ -37,6 +48,8 @@ export async function setupNotificationHandler() {
       shouldSetBadge: false,
     }),
   });
+
+  await ensureNotificationChannel();
 }
 
 export async function requestNotificationPermissions(): Promise<boolean> {
@@ -46,19 +59,26 @@ export async function requestNotificationPermissions(): Promise<boolean> {
   const { status: existing } = await Notifications.getPermissionsAsync();
   let status = existing;
   if (existing !== 'granted') {
-    const response = await Notifications.requestPermissionsAsync();
+    const response = await Notifications.requestPermissionsAsync({
+      android: { allowWhileIdle: true },
+    });
     status = response.status;
   }
   if (status !== 'granted') return false;
 
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('match-updates', {
-      name: 'Match Updates',
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 100, 50, 100],
-    });
-  }
+  await ensureNotificationChannel();
   return true;
+}
+
+export async function initNotifications() {
+  await setupNotificationHandler();
+  const settings = await getNotificationSettings();
+  if (settings.enabled) {
+    const granted = await requestNotificationPermissions();
+    if (!granted) {
+      console.warn('Notification permissions denied or unavailable.');
+    }
+  }
 }
 
 async function sendNotification(title: string, body: string, data?: Record<string, any>) {

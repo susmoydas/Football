@@ -1,4 +1,4 @@
-package com.football2026code.app
+package com.footballiq.m
 
 import android.os.Build
 import android.os.Bundle
