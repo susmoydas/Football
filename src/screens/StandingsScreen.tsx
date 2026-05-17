@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { C, Standing, Team } from '../types';
-import { fetchStandings, FEATURED_LEAGUES } from '../services/api';
-import { StandingsTable, LoadingSpinner, EmptyState, FilterPill, SkeletonStandingsRows, Skeleton } from '../components';
+import { fetchStandings, fetchGroupedStandings, FEATURED_LEAGUES } from '../services/api';
+import { StandingsTable, GroupedStandings, LoadingSpinner, EmptyState, FilterPill, SkeletonStandingsRows, Skeleton } from '../components';
 
 interface Props { selectedLeagueId: string; navigation?: any; onNavigate?: (screen: string, data?: any) => void; }
 
@@ -11,14 +11,24 @@ const SEASON = '2024-2025';
 
 export default function StandingsScreen({ selectedLeagueId, navigation, onNavigate }: Props) {
   const [rows, setRows] = useState<Standing[]>([]);
+  const [groups, setGroups] = useState<Record<string, Standing[]>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [leagueId, setLeagueId] = useState(selectedLeagueId);
 
+  const isUCL = leagueId === '7';
+
   const load = async (id: string) => {
     try {
-      const data = await fetchStandings(id, SEASON);
-      setRows(data);
+      if (id === '7') {
+        const g = await fetchGroupedStandings(id);
+        setGroups(g);
+        setRows([]);
+      } else {
+        const data = await fetchStandings(id, SEASON);
+        setRows(data);
+        setGroups({});
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -71,7 +81,15 @@ export default function StandingsScreen({ selectedLeagueId, navigation, onNaviga
       <View style={{ padding: 16 }}>
         <Text style={s.seasonLabel}>{activeName} · {SEASON}</Text>
 
-        {rows.length === 0 ? (
+        {isUCL && Object.keys(groups).length > 0 ? (
+          <GroupedStandings
+            groups={groups}
+            onTeamPress={row => onNavigate?.('team-details', {
+              team: { id: row.teamId, name: row.name, badge: row.badge || '', league: '', country: '' } as Team,
+              leagueId: selectedLeagueId,
+            })}
+          />
+        ) : rows.length === 0 ? (
           <EmptyState title="Standings not available" description="Try another league or pull to refresh" />
         ) : (
           <StandingsTable
@@ -84,10 +102,12 @@ export default function StandingsScreen({ selectedLeagueId, navigation, onNaviga
           />
         )}
 
-        <View style={s.legend}>
-          <View style={[s.legendDot, { backgroundColor: C.accent }]} />
-          <Text style={s.legendText}>Qualifies / Champions League</Text>
-        </View>
+        {!isUCL && (
+          <View style={s.legend}>
+            <View style={[s.legendDot, { backgroundColor: C.accent }]} />
+            <Text style={s.legendText}>Qualifies / Champions League</Text>
+          </View>
+        )}
 
         <View style={{ height: 32 }} />
       </View>

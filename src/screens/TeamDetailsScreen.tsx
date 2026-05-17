@@ -130,7 +130,7 @@ export default function TeamDetailsScreen({ teamData, selectedLeagueId, navigati
           <Box className="mx-4 mb-4">
             <Heading size="lg" className="text-typography-0 font-bold mb-3">Recent Results</Heading>
             {recentMatches.map(m => (
-              <MatchCard key={m.id} match={m} />
+              <MatchCard key={m.id} match={m} onPress={() => onNavigate?.('match-details', m)} />
             ))}
           </Box>
         )}
@@ -140,7 +140,7 @@ export default function TeamDetailsScreen({ teamData, selectedLeagueId, navigati
           <Box className="mx-4 mb-4">
             <Heading size="lg" className="text-typography-0 font-bold mb-3">Upcoming Fixtures</Heading>
             {upcomingMatches.map(m => (
-              <MatchCard key={m.id} match={m} />
+              <MatchCard key={m.id} match={m} onPress={() => onNavigate?.('match-details', m)} />
             ))}
           </Box>
         )}

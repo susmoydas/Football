@@ -271,6 +271,21 @@ export function StandingsTable({ rows, qualifyCount = 4, onTeamPress }: { rows: 
   );
 }
 
+export function GroupedStandings({ groups, onTeamPress }: { groups: Record<string, Standing[]>; onTeamPress?: (row: Standing) => void }) {
+  const entries = Object.entries(groups);
+  if (entries.length === 0) return null;
+  return (
+    <VStack className="gap-5">
+      {entries.map(([groupName, rows]) => (
+        <VStack key={groupName} className="gap-2">
+          <Heading size="sm" className="text-typography-0 font-bold">{groupName}</Heading>
+          <StandingsTable rows={rows} qualifyCount={2} onTeamPress={onTeamPress} />
+        </VStack>
+      ))}
+    </VStack>
+  );
+}
+
 export function StatBar({ label, home, away }: { label: string; home: number; away: number }) {
   const total = home + away || 1;
   return (

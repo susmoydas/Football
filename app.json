@@ -2,7 +2,7 @@
   "expo": {
     "name": "Footbaliq",
     "slug": "football2026code",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "sdkVersion": "54.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -22,6 +22,7 @@
         "backgroundColor": "#07111F"
       },
       "package": "com.footballiq.m",
+      "versionCode": 2,
       "permissions": [
         "POST_NOTIFICATIONS"
       ]

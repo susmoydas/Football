@@ -590,6 +590,7 @@ export const FEATURED_LEAGUES: League[] = [
   { id: '1', name: 'Premier League', badge: undefined, country: 'England' },
   { id: '3', name: 'La Liga', badge: undefined, country: 'Spain' },
   { id: '5', name: 'Bundesliga', badge: undefined, country: 'Germany' },
+  { id: '7', name: 'UEFA Champions League', badge: undefined, country: 'Europe' },
   { id: '4', name: 'Serie A', badge: undefined, country: 'Italy' },
   { id: '6', name: 'Ligue 1', badge: undefined, country: 'France' },
   { id: '2', name: 'Liga Portugal Betclic', badge: undefined, country: 'Portugal' },
@@ -846,6 +847,7 @@ interface BSDManager {
   name: string;
   short_name: string;
   country: string;
+  role?: string;
   tactical_profile: string;
   preferred_formation: string;
   current_team_id: number;
@@ -866,7 +868,7 @@ function toCoachStaff(m: BSDManager): CoachStaff {
   return {
     id: String(m.id),
     name: m.name,
-    role: 'Head Coach',
+    role: m.role || 'Head Coach',
     country: m.country,
     tacticalProfile: m.tactical_profile,
     preferredFormation: m.preferred_formation,
@@ -890,7 +892,12 @@ export async function fetchTeamCoachingStaff(teamId: string): Promise<CoachStaff
       params: { team_id: teamId, limit: 10 },
     });
     const list = Array.isArray(data) ? data : data?.results ?? [];
-    return list.map(toCoachStaff);
+    const seen = new Set<string>();
+    return list.filter((m: BSDManager) => {
+      if (seen.has(String(m.id))) return false;
+      seen.add(String(m.id));
+      return true;
+    }).map(toCoachStaff);
   } catch {
     return [];
   }
@@ -938,25 +945,48 @@ interface BSDStandingsResponse {
   groups?: Record<string, BSDStandingRow[]>;
 }
 
+function mapStandingRow(r: BSDStandingRow): Standing {
+  return {
+    ...toStanding(r),
+    badge: `https://sports.bzzoiro.com/img/team/${r.team_id}/`,
+  };
+}
+
 export async function fetchStandings(leagueId: string, _season?: string): Promise<Standing[]> {
   try {
     await ensureTeamFlagCache(leagueId);
     const { data } = await api.get<BSDStandingsResponse>(`/leagues/${leagueId}/standings/`);
-    const mapRow = (r: BSDStandingRow) => ({
-      ...toStanding(r),
-      badge: `https://sports.bzzoiro.com/img/team/${r.team_id}/`,
-    });
-    if (data.standings) return data.standings.map(mapRow);
+    if (data.standings) return data.standings.map(mapStandingRow);
     if (data.groups) {
       const all: Standing[] = [];
       for (const group of Object.values(data.groups)) {
-        all.push(...group.map(mapRow));
+        all.push(...group.map(mapStandingRow));
       }
       return all;
     }
     return [];
   } catch {
     return [];
+  }
+}
+
+export async function fetchGroupedStandings(leagueId: string): Promise<Record<string, Standing[]>> {
+  try {
+    await ensureTeamFlagCache(leagueId);
+    const { data } = await api.get<BSDStandingsResponse>(`/leagues/${leagueId}/standings/`);
+    if (data.groups) {
+      const result: Record<string, Standing[]> = {};
+      for (const [key, rows] of Object.entries(data.groups)) {
+        result[key] = rows.map(mapStandingRow);
+      }
+      return result;
+    }
+    if (data.standings) {
+      return { Standings: data.standings.map(mapStandingRow) };
+    }
+    return {};
+  } catch {
+    return {};
   }
 }
 
