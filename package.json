@@ -1,6 +1,6 @@
 {
   "name": "football2026code",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "main": "index.ts",
   "scripts": {
     "start": "EXPO_OFFLINE=1 expo start --clear",
@@ -64,6 +64,7 @@
     "react-aria": "^3.48.0",
     "react-dom": "^19.2.6",
     "react-native": "0.81.5",
+    "react-native-gesture-handler": "~2.28.0",
     "react-native-reanimated": "~4.1.0",
     "react-native-safe-area-context": "^5.7.0",
     "react-native-screens": "~4.16.0",
