@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { C, Match, Screen } from '../types';
 import { fetchRecentResults, FEATURED_LEAGUES } from '../services/api';
-import { TeamBadge, LoadingSpinner, EmptyState, Header, Skeleton } from '../components';
+import { TeamBadge, EmptyState, Header, SkeletonBlock, SoftSkeleton, FadeInView } from '../components';
 
 interface Props {
   onNavigate?: (screen: Screen, data?: any) => void;
@@ -34,9 +34,10 @@ export default function ResultsScreen({ onNavigate, selectedLeagueId, navigation
 
   const byDate = new Map<string, Match[]>();
   allResults.forEach(m => {
-    const list = byDate.get(m.date) ?? [];
+    const adjustedDate = m.status === 'finished' ? m.date : m.date;
+    const list = byDate.get(adjustedDate) ?? [];
     list.push(m);
-    byDate.set(m.date, list);
+    byDate.set(adjustedDate, list);
   });
 
   if (loading) return (
@@ -44,31 +45,33 @@ export default function ResultsScreen({ onNavigate, selectedLeagueId, navigation
       <Header title="Results" showBack={true} onBackPress={() => navigation?.goBack()} />
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View style={{ padding: 16 }}>
-          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3.5 w-48 mb-3" />
-          <View style={s.card}>
-            {[1, 2, 3].map(i => (
-              <View key={i} style={[s.matchRow, i > 1 && s.matchRowBorder]}>
-                <View style={s.matchTeams}>
-                  <View style={s.teamGroup}>
-                    <Skeleton variant="circular" startColor="bg-background-100" className="w-6 h-6" />
-                    <Skeleton variant="rounded" startColor="bg-background-100" className="h-3.5 flex-1" />
+          <SoftSkeleton>
+            <SkeletonBlock style={{ width: 192, height: 14, marginBottom: 12 }} />
+            <View style={s.card}>
+              {[1, 2, 3, 4, 5].map(i => (
+                <View key={i} style={[s.matchRow, i > 1 && s.matchRowBorder]}>
+                  <View style={s.matchTeams}>
+                    <View style={s.teamGroup}>
+                      <SkeletonBlock variant="circular" style={{ width: 24, height: 24 }} />
+                      <SkeletonBlock style={{ flex: 1, height: 14 }} />
+                    </View>
+                    <View style={s.teamGroup}>
+                      <SkeletonBlock variant="circular" style={{ width: 24, height: 24 }} />
+                      <SkeletonBlock style={{ flex: 1, height: 14 }} />
+                    </View>
                   </View>
-                  <View style={s.teamGroup}>
-                    <Skeleton variant="circular" startColor="bg-background-100" className="w-6 h-6" />
-                    <Skeleton variant="rounded" startColor="bg-background-100" className="h-3.5 flex-1" />
+                  <View style={s.scoreGroup}>
+                    <SkeletonBlock style={{ width: 20, height: 20 }} />
+                    <SkeletonBlock style={{ width: 8, height: 16 }} />
+                    <SkeletonBlock style={{ width: 20, height: 20 }} />
+                  </View>
+                  <View style={s.badgeWrap}>
+                    <SkeletonBlock style={{ width: 32, height: 20, borderRadius: 6 }} />
                   </View>
                 </View>
-                <View style={s.scoreGroup}>
-                  <Skeleton variant="rounded" startColor="bg-background-100" className="h-5 w-5" />
-                  <Skeleton variant="rounded" startColor="bg-background-100" className="h-4 w-2" />
-                  <Skeleton variant="rounded" startColor="bg-background-100" className="h-5 w-5" />
-                </View>
-                <View style={s.badgeWrap}>
-                  <Skeleton variant="rounded" startColor="bg-background-100" className="h-5 w-8 rounded-md" />
-                </View>
-              </View>
-            ))}
-          </View>
+              ))}
+            </View>
+          </SoftSkeleton>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -82,6 +85,7 @@ export default function ResultsScreen({ onNavigate, selectedLeagueId, navigation
         onBackPress={() => navigation?.goBack()}
       />
 
+      <FadeInView style={{ flex: 1 }}>
       <ScrollView
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
@@ -135,6 +139,7 @@ export default function ResultsScreen({ onNavigate, selectedLeagueId, navigation
         )}
         <View style={{ height: 32 }} />
       </ScrollView>
+      </FadeInView>
     </SafeAreaView>
   );
 }

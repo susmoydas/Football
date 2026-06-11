@@ -8,7 +8,63 @@ const KEYS = {
   MATCH_TODAY_NOTIF: '@f26_match_today',
   MATCH_RUNNING_NOTIF: '@f26_match_running',
   MATCH_DONE_NOTIF: '@f26_match_done',
+  CACHE_LEAGUES: '@f26_cache_leagues',
+  CACHE_MATCHES: '@f26_cache_matches_',
+  CACHE_TEAMS: '@f26_cache_teams_',
+  CACHE_TIMESTAMP: '@f26_cache_ts_',
 };
+
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// ─── Generic cache ────────────────────────────────────────────────────────────
+
+async function getCacheItem<T>(key: string): Promise<T | null> {
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    if (!raw) return null;
+    const { data, ts } = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_TTL) return null;
+    return data as T;
+  } catch {
+    return null;
+  }
+}
+
+async function setCacheItem<T>(key: string, data: T): Promise<void> {
+  try {
+    await AsyncStorage.setItem(key, JSON.stringify({ data, ts: Date.now() }));
+  } catch {}
+}
+
+// ─── League cache ─────────────────────────────────────────────────────────────
+
+export async function getCachedLeagues(): Promise<any[] | null> {
+  return getCacheItem<any[]>(KEYS.CACHE_LEAGUES);
+}
+
+export async function setCachedLeagues(data: any[]): Promise<void> {
+  return setCacheItem(KEYS.CACHE_LEAGUES, data);
+}
+
+// ─── Match cache ──────────────────────────────────────────────────────────────
+
+export async function getCachedMatches(leagueId: string): Promise<any[] | null> {
+  return getCacheItem<any[]>(KEYS.CACHE_MATCHES + leagueId);
+}
+
+export async function setCachedMatches(leagueId: string, data: any[]): Promise<void> {
+  return setCacheItem(KEYS.CACHE_MATCHES + leagueId, data);
+}
+
+// ─── Team cache ───────────────────────────────────────────────────────────────
+
+export async function getCachedTeams(leagueId: string): Promise<any[] | null> {
+  return getCacheItem<any[]>(KEYS.CACHE_TEAMS + leagueId);
+}
+
+export async function setCachedTeams(leagueId: string, data: any[]): Promise<void> {
+  return setCacheItem(KEYS.CACHE_TEAMS + leagueId, data);
+}
 
 // ─── Favourites ───────────────────────────────────────────────────────────────
 

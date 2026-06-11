@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Image, Animated, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { Calendar03Icon, Clock01Icon, MapPinIcon, ChampionIcon, ChartAverageIcon, FootballIcon, ClipboardIcon } from '@hugeicons/core-free-icons';
 import { C, LineupPlayer, Match, Screen, LineupResponse } from '../types';
 import { fetchEvent, fetchLineup } from '../services/api';
-import { TeamBadge, StatBar, LoadingSpinner, Header } from '../components';
+import { TeamBadge, StatBar, LoadingSpinner, Header, SkeletonBlock, SoftSkeleton, FadeInView } from '../components';
 
 interface Props {
   onNavigate?: (screen: Screen) => void;
@@ -90,24 +90,64 @@ function PlayerAvatar({ playerId, name, size = 40 }: { playerId: number; name: s
 
 export default function MatchDetailsScreen({ onNavigate, matchData, navigation }: Props) {
   const [tab, setTab] = useState<Tab>('summary');
-  const [match, setMatch] = useState<Match>(matchData);
-  const [selectedPlayer, setSelectedPlayer] = useState<number | null>(null);
+  const [match, setMatch] = useState<Match | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState<number | null>(null);
   const [lineup, setLineup] = useState<LineupResponse | null>(null);
   const [lineupLoading, setLineupLoading] = useState(false);
 
   useEffect(() => {
-    fetchEvent(matchData.id).then(m => {
-      if (m) setMatch(m);
-    }).finally(() => setLoading(false));
+    setLoading(true);
+    setError(false);
+    fetchEvent(matchData.id)
+      .then(m => {
+        if (m) {
+          setMatch(m);
+        } else {
+          setError(true);
+        }
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
   }, [matchData.id]);
 
   useEffect(() => {
-    if (tab === 'lineups' && !lineup) {
+    if (tab === 'lineups' && match && !lineup) {
       setLineupLoading(true);
       fetchLineup(matchData.id).then(setLineup).finally(() => setLineupLoading(false));
     }
-  }, [tab, matchData.id, lineup]);
+  }, [tab, matchData.id, lineup, match]);
+
+  const retry = () => {
+    setLoading(true);
+    setError(false);
+    fetchEvent(matchData.id)
+      .then(m => {
+        if (m) setMatch(m);
+        else setError(true);
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
+        <Header title="Match Details" showBack onBackPress={() => navigation?.goBack()} />
+        <MatchDetailsSkeleton />
+      </SafeAreaView>
+    );
+  }
+
+  if (error || !match) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
+        <Header title="Match Details" showBack onBackPress={() => navigation?.goBack()} />
+        <MatchDetailsError onRetry={retry} />
+      </SafeAreaView>
+    );
+  }
 
   const isLive = match.status === 'live';
   const isFinished = match.status === 'finished';
@@ -125,8 +165,9 @@ export default function MatchDetailsScreen({ onNavigate, matchData, navigation }
         onBackPress={() => navigation?.goBack()}
       />
 
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        {/* ─── Score Hero (Card Style) ─── */}
+      <FadeInView style={{ flex: 1 }}>
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+          {/* ─── Score Hero (Card Style) ─── */}
         <View style={s.hero}>
           <View style={s.heroInner}>
             {/* Header: League + Date */}
@@ -137,10 +178,25 @@ export default function MatchDetailsScreen({ onNavigate, matchData, navigation }
 
             {/* Main row: [Home Logo] [Score] [Away Logo] */}
             <View style={s.heroMain}>
-              <View style={s.heroTeam}>
+              <TouchableOpacity
+                style={s.heroTeam}
+                onPress={() => {
+                  navigation?.navigate('TeamDetails', {
+                    teamData: {
+                      id: match.homeTeamId || '',
+                      name: match.homeTeam,
+                      badge: match.homeBadge || '',
+                      badgeUrl: match.homeBadge,
+                      country: match.homeCountry || '',
+                      league: match.league || '',
+                    },
+                    leagueId: (match as any).leagueId || '',
+                  });
+                }}
+              >
                 <TeamBadge uri={match.homeBadge} size={64} name={match.homeTeam} />
                 <Text style={s.heroTeamName} numberOfLines={2}>{match.homeTeam}</Text>
-              </View>
+              </TouchableOpacity>
 
               <View style={s.heroScoreWrap}>
                 {hasScore ? (
@@ -158,10 +214,25 @@ export default function MatchDetailsScreen({ onNavigate, matchData, navigation }
                 )}
               </View>
 
-              <View style={s.heroTeam}>
+              <TouchableOpacity
+                style={s.heroTeam}
+                onPress={() => {
+                  navigation?.navigate('TeamDetails', {
+                    teamData: {
+                      id: match.awayTeamId || '',
+                      name: match.awayTeam,
+                      badge: match.awayBadge || '',
+                      badgeUrl: match.awayBadge,
+                      country: match.awayCountry || '',
+                      league: match.league || '',
+                    },
+                    leagueId: (match as any).leagueId || '',
+                  });
+                }}
+              >
                 <TeamBadge uri={match.awayBadge} size={64} name={match.awayTeam} />
                 <Text style={s.heroTeamName} numberOfLines={2}>{match.awayTeam}</Text>
-              </View>
+              </TouchableOpacity>
             </View>
 
             {/* Status row */}
@@ -408,8 +479,89 @@ export default function MatchDetailsScreen({ onNavigate, matchData, navigation }
         </View>
 
         <View style={{ height: 32 }} />
-      </ScrollView>
+        </ScrollView>
+      </FadeInView>
     </SafeAreaView>
+  );
+}
+
+function MatchDetailsSkeleton() {
+  return (
+    <SoftSkeleton style={{ flex: 1 }}>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        <View style={s.hero}>
+          <View style={s.heroInner}>
+            <View style={s.heroHeader}>
+              <SkeletonBlock style={{ width: 112, height: 12 }} />
+              <SkeletonBlock style={{ width: 96, height: 12 }} />
+            </View>
+            <View style={s.heroMain}>
+              <View style={s.heroTeam}>
+                <SkeletonBlock style={{ width: 64, height: 64 }} />
+                <SkeletonBlock style={{ width: 80, height: 12 }} />
+              </View>
+              <View style={s.heroScoreWrap}>
+                <SkeletonBlock style={{ width: 64, height: 40 }} />
+              </View>
+              <View style={s.heroTeam}>
+                <SkeletonBlock style={{ width: 64, height: 64 }} />
+                <SkeletonBlock style={{ width: 80, height: 12 }} />
+              </View>
+            </View>
+            <View style={s.statusWrap}>
+              <SkeletonBlock style={{ width: 80, height: 12 }} />
+            </View>
+          </View>
+        </View>
+
+        <View style={s.tabs}>
+          {['S', 'S', 'S', 'S'].map((_, i) => (
+            <View key={i} style={s.tab}>
+              <SkeletonBlock style={{ width: 48, height: 12 }} />
+            </View>
+          ))}
+        </View>
+
+        <View style={{ padding: 16 }}>
+          <View style={s.card}>
+            <SkeletonBlock style={{ width: 144, height: 16, marginBottom: 16 }} />
+            {[0, 1, 2, 3].map(i => (
+              <View key={i}>
+                <View style={s.infoRow}>
+                  <SkeletonBlock style={{ width: 44, height: 44, borderRadius: 12 }} />
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <SkeletonBlock style={{ width: 64, height: 12 }} />
+                    <SkeletonBlock style={{ width: 144, height: 16 }} />
+                  </View>
+                </View>
+                {i < 3 && <View style={s.divider} />}
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={{ height: 32 }} />
+      </ScrollView>
+    </SoftSkeleton>
+  );
+}
+
+function MatchDetailsError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
+      <HugeiconsIcon icon={FootballIcon} size={48} color={C.textSecondary} />
+      <Text style={{ color: C.textPrimary, fontSize: 18, fontWeight: '700', marginTop: 16 }}>Failed to Load</Text>
+      <Text style={{ color: C.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 }}>
+        Could not load match details. Please try again.
+      </Text>
+      <TouchableOpacity
+        style={{ marginTop: 24, backgroundColor: C.accent, paddingHorizontal: 32, paddingVertical: 12, borderRadius: 12 }}
+        onPress={onRetry}
+        activeOpacity={0.8}
+      >
+        <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>Retry</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 

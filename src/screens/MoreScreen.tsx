@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Linking, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import { ArrowUp01Icon, ArrowDown01Icon, CheckmarkCircle01Icon, Notification02Icon, Calendar03Icon, FootballIcon } from '@hugeicons/core-free-icons';
+import { ArrowDown01Icon, CheckmarkCircle01Icon, Notification02Icon, Calendar03Icon, FootballIcon } from '@hugeicons/core-free-icons';
 import { C, League } from '../types';
 import { saveSelectedLeague, NotificationSettings, getNotificationSettings, saveNotificationSettings } from '../services/storage';
-import { FEATURED_LEAGUES } from '../services/api';
+import { fetchLeagues, FEATURED_LEAGUES } from '../services/api';
 import { requestNotificationPermissions } from '../services/notifications';
 import { AppLogo } from '../components';
+import LeagueBottomSheet from '../components/home/LeagueBottomSheet';
 
 interface Props {
   selectedLeagueId: string;
@@ -15,7 +16,8 @@ interface Props {
 }
 
 export default function MoreScreen({ selectedLeagueId, onLeagueChange }: Props) {
-  const [showLeagues, setShowLeagues] = useState(false);
+  const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [allLeagues, setAllLeagues] = useState<League[]>(FEATURED_LEAGUES);
   const [notifSettings, setNotifSettings] = useState<NotificationSettings>({
     enabled: true,
     matchToday: true,
@@ -25,6 +27,14 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange }: Props) 
 
   useEffect(() => {
     loadNotificationSettings();
+    fetchLeagues().then(apiLeagues => {
+      const merged: League[] = [];
+      const seen = new Set<string>();
+      for (const l of [...FEATURED_LEAGUES, ...apiLeagues]) {
+        if (!seen.has(l.id)) { seen.add(l.id); merged.push(l); }
+      }
+      setAllLeagues(merged);
+    }).catch(() => setAllLeagues(FEATURED_LEAGUES));
   }, []);
 
   const loadNotificationSettings = async () => {
@@ -55,10 +65,10 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange }: Props) 
   const handleLeagueSelect = async (id: string) => {
     await saveSelectedLeague(id);
     onLeagueChange(id);
-    setShowLeagues(false);
+    setShowBottomSheet(false);
   };
 
-  const activeName = FEATURED_LEAGUES.find(l => l.id === selectedLeagueId)?.name ?? '';
+  const activeName = allLeagues.find(l => l.id === selectedLeagueId)?.name ?? '';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
@@ -74,25 +84,10 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange }: Props) 
 
       {/* League selection */}
       <Text style={s.sectionLabel}>Default League</Text>
-      <TouchableOpacity style={s.leagueRow} onPress={() => setShowLeagues(!showLeagues)}>
+      <TouchableOpacity style={s.leagueRow} onPress={() => setShowBottomSheet(true)}>
         <Text style={s.leagueRowText}>{activeName}</Text>
-        <HugeiconsIcon icon={showLeagues ? ArrowUp01Icon : ArrowDown01Icon} size={20} color={C.textSecondary} />
+        <HugeiconsIcon icon={ArrowDown01Icon} size={20} color={C.textSecondary} />
       </TouchableOpacity>
-
-      {showLeagues && (
-        <View style={s.leagueList}>
-          {FEATURED_LEAGUES.map(l => (
-            <TouchableOpacity
-              key={l.id}
-              style={[s.leagueItem, l.id === selectedLeagueId && { backgroundColor: C.accent + '20' }]}
-              onPress={() => handleLeagueSelect(l.id)}
-            >
-              <Text style={[s.leagueItemText, l.id === selectedLeagueId && { color: C.accent }]}>{l.name}</Text>
-              {l.id === selectedLeagueId && <HugeiconsIcon icon={CheckmarkCircle01Icon} size={20} color={C.accent} />}
-            </TouchableOpacity>
-          ))}
-        </View>
-        )}
 
       {/* Notifications */}
       <Text style={s.sectionLabel}>Notifications</Text>
@@ -164,6 +159,13 @@ export default function MoreScreen({ selectedLeagueId, onLeagueChange }: Props) 
         )}
       </View>
     </ScrollView>
+    <LeagueBottomSheet
+      visible={showBottomSheet}
+      leagues={allLeagues}
+      selectedLeagueId={selectedLeagueId}
+      onSelectLeague={handleLeagueSelect}
+      onClose={() => setShowBottomSheet(false)}
+    />
     </SafeAreaView>
   );
 }
@@ -190,7 +192,4 @@ const s = StyleSheet.create({
   settingValue: { color: C.textSecondary, fontSize: 12, marginTop: 2, maxWidth: 180 },
   leagueRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.card, borderRadius: 16, padding: 16, marginBottom: 16 },
   leagueRowText: { color: C.textPrimary, fontSize: 17, fontWeight: '600' },
-  leagueList: { backgroundColor: C.card, borderRadius: 14, marginBottom: 16, overflow: 'hidden' },
-  leagueItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, borderBottomWidth: 1, borderBottomColor: C.border },
-  leagueItemText: { color: C.textPrimary, fontSize: 14 },
 });

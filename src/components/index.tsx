@@ -1,10 +1,11 @@
 import React, { useRef, useEffect } from 'react';
-import { Image, ImageBackground, Animated, Platform } from 'react-native';
+import { Image, ImageBackground, Animated, Easing, Platform, View } from 'react-native';
 
 import Svg, { Path, Circle, G, Defs, ClipPath, Rect } from 'react-native-svg';
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { File01Icon, ArrowRight01Icon, FootballIcon, ArrowLeft01Icon } from '@hugeicons/core-free-icons';
 import { Match, Team, Standing, NewsArticle } from '../types';
+import { C } from '../types';
 import { Text } from '@/components/ui/text';
 import { Heading } from '@/components/ui/heading';
 import { Button, ButtonText } from '@/components/ui/button';
@@ -399,137 +400,240 @@ export function LoadingSpinner({ message }: { message?: string }) {
 
 export function AnimatedPressable({ children, onPress, style, className, ...props }: { children: React.ReactNode; onPress?: () => void; style?: any; className?: string }) {
   const scale = useRef(new Animated.Value(1)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const pressOpacity = useRef(new Animated.Value(1)).current;
+  const entryOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(fadeAnim, {
+    Animated.timing(entryOpacity, {
       toValue: 1,
       duration: 350,
       useNativeDriver: true,
     }).start();
-  }, [fadeAnim]);
+  }, [entryOpacity]);
 
   const handlePressIn = () => {
-    Animated.spring(scale, {
-      toValue: 0.97,
-      friction: 8,
-      tension: 120,
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.spring(scale, {
+        toValue: 0.96,
+        friction: 7,
+        tension: 140,
+        useNativeDriver: true,
+      }),
+      Animated.timing(pressOpacity, {
+        toValue: 0.85,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
   const handlePressOut = () => {
-    Animated.spring(scale, {
-      toValue: 1,
-      friction: 6,
-      tension: 120,
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.spring(scale, {
+        toValue: 1,
+        friction: 5,
+        tension: 140,
+        useNativeDriver: true,
+      }),
+      Animated.spring(pressOpacity, {
+        toValue: 1,
+        friction: 5,
+        tension: 140,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
   return (
     <Pressable className={className} onPress={onPress} onPressIn={handlePressIn} onPressOut={handlePressOut} {...props}>
-      <Animated.View style={[{ transform: [{ scale }], opacity: fadeAnim }, style]}>
+      <Animated.View style={[{ transform: [{ scale }] }, { opacity: Animated.multiply(entryOpacity, pressOpacity) }, style]}>
         {children}
       </Animated.View>
     </Pressable>
   );
 }
 
+// ─── Soft skeleton primitives ─────────────────────────────────────────────────
+
+const SKELETON_BASE = '#2C2C2E';
+
+export function SkeletonBlock({ style, variant = 'rounded' }: { style?: any; variant?: 'rounded' | 'circular' | 'sharp' }) {
+  const r = variant === 'circular' ? 9999 : variant === 'sharp' ? 0 : 8;
+  return <View style={[{ backgroundColor: SKELETON_BASE, borderRadius: r }, style]} />;
+}
+
+export function SoftSkeleton({ children, style }: { children: React.ReactNode; style?: any }) {
+  const opacity = useRef(new Animated.Value(0.9)).current;
+
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 900,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.9,
+          duration: 900,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, []);
+
+  return <Animated.View style={[{ opacity }, style]}>{children}</Animated.View>;
+}
+
+export function FadeInView({ children, style }: { children: React.ReactNode; style?: any }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(opacity, {
+      toValue: 1,
+      duration: 400,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  return <Animated.View style={[{ opacity }, style]}>{children}</Animated.View>;
+}
+
+export function SkeletonPillBar({ count = 4, width = 72 }: { count?: number; width?: number }) {
+  return (
+    <SoftSkeleton style={{ marginBottom: 16 }}>
+      <HStack style={{ gap: 8, paddingRight: 4 }}>
+        {Array.from({ length: count }).map((_, i) => (
+          <SkeletonBlock key={i} variant="circular" style={{ width, height: 32 }} />
+        ))}
+      </HStack>
+    </SoftSkeleton>
+  );
+}
+
+export function SkeletonBanner() {
+  return <SoftSkeleton><SkeletonBlock style={{ height: 180, borderRadius: 12, marginBottom: 20 }} /></SoftSkeleton>;
+}
+
 export function SkeletonMatchCard() {
   return (
-    <Card size="sm" variant="elevated" className="rounded-xl mb-3 px-4 pt-3 pb-4">
-      <HStack className="justify-between items-start mb-3">
-        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 w-24" />
-        <VStack className="items-end gap-1">
-          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 w-20" />
-          <Skeleton variant="rounded" startColor="bg-background-100" className="h-2.5 w-28" />
-        </VStack>
-      </HStack>
-      <HStack className="items-start justify-between mb-3">
-        <VStack className="items-center flex-1 gap-2">
-          <Skeleton variant="circular" startColor="bg-background-100" className="w-12 h-12" />
-          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 w-16" />
-        </VStack>
-        <VStack className="items-center px-2 pt-1">
-          <Skeleton variant="rounded" startColor="bg-background-100" className="h-8 w-16" />
-        </VStack>
-        <VStack className="items-center flex-1 gap-2">
-          <Skeleton variant="circular" startColor="bg-background-100" className="w-12 h-12" />
-          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 w-16" />
-        </VStack>
-      </HStack>
-      <HStack className="items-center justify-center">
-        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 w-16" />
-      </HStack>
-    </Card>
+    <SoftSkeleton>
+      <Card size="sm" variant="elevated" className="rounded-xl mb-3 px-4 pt-3 pb-4">
+        <HStack className="justify-between items-start mb-3">
+          <SkeletonBlock style={{ width: 96, height: 12 }} />
+          <VStack className="items-end gap-1.5">
+            <SkeletonBlock style={{ width: 80, height: 12 }} />
+            <SkeletonBlock style={{ width: 112, height: 10 }} />
+          </VStack>
+        </HStack>
+        <HStack className="items-start justify-between mb-3">
+          <VStack className="items-center flex-1 gap-2.5">
+            <SkeletonBlock variant="rounded" style={{ width: 48, height: 48, borderRadius: 4 }} />
+            <SkeletonBlock style={{ width: 64, height: 12 }} />
+          </VStack>
+          <VStack className="items-center px-2 pt-1">
+            <SkeletonBlock style={{ width: 64, height: 32 }} />
+          </VStack>
+          <VStack className="items-center flex-1 gap-2.5">
+            <SkeletonBlock variant="rounded" style={{ width: 48, height: 48, borderRadius: 4 }} />
+            <SkeletonBlock style={{ width: 64, height: 12 }} />
+          </VStack>
+        </HStack>
+        <HStack className="items-center justify-center">
+          <SkeletonBlock style={{ width: 64, height: 12 }} />
+        </HStack>
+      </Card>
+    </SoftSkeleton>
   );
 }
 
 export function SkeletonTeamCardList() {
   return (
-    <Card size="sm" variant="elevated" className="rounded-xl flex-row items-center mb-2 px-4 py-3">
-      <Skeleton variant="circular" startColor="bg-background-100" className="w-12 h-12" />
-      <VStack className="flex-1 ml-3 gap-1.5">
-        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3.5 w-32" />
-        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 w-20" />
-      </VStack>
-    </Card>
+    <SoftSkeleton>
+      <Card size="sm" variant="elevated" className="rounded-xl flex-row items-center mb-2 px-4 py-3">
+        <SkeletonBlock variant="circular" style={{ width: 48, height: 48 }} />
+        <VStack className="flex-1 ml-3 gap-2">
+          <SkeletonBlock style={{ width: 128, height: 14 }} />
+          <SkeletonBlock style={{ width: 80, height: 12 }} />
+        </VStack>
+      </Card>
+    </SoftSkeleton>
   );
 }
 
 export function SkeletonTeamCardGrid() {
   return (
-    <Card size="sm" variant="elevated" className="rounded-xl items-center px-4 py-4 flex-1">
-      <Skeleton variant="circular" startColor="bg-background-100" className="w-14 h-14 mb-2" />
-      <Skeleton variant="rounded" startColor="bg-background-100" className="h-3.5 w-20 mb-1" />
-      <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 w-16" />
-    </Card>
+    <SoftSkeleton style={{ flex: 1 }}>
+      <Card size="sm" variant="elevated" className="rounded-xl items-center px-4 py-4 flex-1">
+        <SkeletonBlock variant="circular" style={{ width: 56, height: 56, marginBottom: 8 }} />
+        <SkeletonBlock style={{ width: 80, height: 14, marginBottom: 4 }} />
+        <SkeletonBlock style={{ width: 64, height: 12 }} />
+      </Card>
+    </SoftSkeleton>
   );
 }
 
 export function SkeletonNewsCard() {
   return (
-    <Card size="sm" variant="elevated" className="rounded-xl overflow-hidden mb-3 p-0">
-      <Skeleton variant="rounded" startColor="bg-background-100" className="w-full h-40" />
-      <VStack className="p-3.5 gap-2">
-        <Skeleton variant="rounded" startColor="bg-background-100" className="h-4 w-full" />
-        <Skeleton variant="rounded" startColor="bg-background-100" className="h-4 w-3/4" />
-        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 w-24" />
-      </VStack>
-    </Card>
+    <SoftSkeleton>
+      <Card size="sm" variant="elevated" className="rounded-xl overflow-hidden mb-3 p-0">
+        <SkeletonBlock style={{ width: '100%', height: 160 }} />
+        <VStack className="p-3.5 gap-2">
+          <SkeletonBlock style={{ width: '100%', height: 16 }} />
+          <SkeletonBlock style={{ width: '75%', height: 16 }} />
+          <SkeletonBlock style={{ width: 96, height: 12, marginTop: 4 }} />
+        </VStack>
+      </Card>
+    </SoftSkeleton>
   );
 }
 
 export function SkeletonStandingsRows({ count = 6 }: { count?: number }) {
   return (
-    <Card size="sm" variant="elevated" className="rounded-xl overflow-hidden">
-      <HStack className="bg-background-0 py-2.5 px-3">
-        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 w-5" />
-        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-[3] ml-2" />
-        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
-        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
-        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
-        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
-        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
-        <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
-      </HStack>
-      {Array.from({ length: count }).map((_, i) => (
-        <HStack key={i} className="py-2.5 px-3 items-center">
-          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 w-5" />
-          <HStack className="flex-[3] items-center gap-1.5 ml-2">
-            <Skeleton variant="circular" startColor="bg-background-100" className="w-6 h-6" />
-            <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1" />
-          </HStack>
-          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
-          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
-          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
-          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
-          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
-          <Skeleton variant="rounded" startColor="bg-background-100" className="h-3 flex-1 ml-2" />
+    <SoftSkeleton>
+      <Card size="sm" variant="elevated" className="rounded-xl overflow-hidden">
+        <HStack className="bg-background-0 py-2.5 px-3">
+          <SkeletonBlock style={{ width: 20, height: 12 }} />
+          <SkeletonBlock style={{ flex: 3, height: 12, marginLeft: 8 }} />
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <SkeletonBlock key={i} style={{ flex: 1, height: 12, marginLeft: 8 }} />
+          ))}
         </HStack>
-      ))}
-    </Card>
+        {Array.from({ length: count }).map((_, i) => (
+          <HStack key={i} className="py-2.5 px-3 items-center">
+            <SkeletonBlock style={{ width: 20, height: 12 }} />
+            <HStack className="flex-[3] items-center gap-1.5 ml-2">
+              <SkeletonBlock variant="circular" style={{ width: 24, height: 24 }} />
+              <SkeletonBlock style={{ flex: 1, height: 12 }} />
+            </HStack>
+            {[1, 2, 3, 4, 5, 6].map(j => (
+              <SkeletonBlock key={j} style={{ flex: 1, height: 12, marginLeft: 8 }} />
+            ))}
+          </HStack>
+        ))}
+      </Card>
+    </SoftSkeleton>
+  );
+}
+
+// ─── Generic loading/error helpers ───────────────────────────────────────────
+
+export function SkeletonError({ message = 'Failed to load. Pull to retry.', onRetry }: { message?: string; onRetry?: () => void }) {
+  return (
+    <VStack className="items-center justify-center py-12 px-8 gap-3">
+      <HugeiconsIcon icon={FootballIcon} size={40} color="#5A5A6E" />
+      <Text size="sm" className="text-typography-500 text-center">{message}</Text>
+      {onRetry && (
+        <Pressable onPress={onRetry} className="mt-2 px-6 py-2.5 rounded-xl" style={{ backgroundColor: C.accent }}>
+          <Text size="sm" className="text-white font-bold">Retry</Text>
+        </Pressable>
+      )}
+    </VStack>
   );
 }
 

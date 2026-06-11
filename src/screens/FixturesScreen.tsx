@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { C, Match, Screen } from '../types';
 import { fetchNextEvents, fetchLastEvents } from '../services/api';
-import { MatchCard, FilterPill, LoadingSpinner, EmptyState, SkeletonMatchCard, Skeleton } from '../components';
+import { MatchCard, FilterPill, EmptyState, SkeletonMatchCard, SkeletonPillBar, FadeInView } from '../components';
 
 interface Props {
   onNavigate: (screen: Screen, data?: any) => void;
@@ -25,7 +25,11 @@ export default function FixturesScreen({ onNavigate, selectedLeagueId, navigatio
         fetchNextEvents(selectedLeagueId),
         fetchLastEvents(selectedLeagueId),
       ]);
-      const all = [...past.reverse(), ...upcoming];
+      const all = [...past.reverse(), ...upcoming].sort((a, b) => {
+        if (a.date < b.date) return -1;
+        if (a.date > b.date) return 1;
+        return a.time.localeCompare(b.time);
+      });
       setMatches(all);
     } finally {
       setLoading(false);
@@ -50,11 +54,7 @@ export default function FixturesScreen({ onNavigate, selectedLeagueId, navigatio
       <View style={{ height: 8 }} />
       <ScrollView style={{ flex: 1, backgroundColor: C.bg }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }}>
         <View style={s.filterBar}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-            {[1, 2, 3, 4].map(i => (
-              <Skeleton key={i} variant="rounded" startColor="bg-background-100" className="h-8 rounded-full" style={{ width: 80 }} />
-            ))}
-          </ScrollView>
+          <SkeletonPillBar count={4} width={80} />
         </View>
         <View style={{ padding: 16 }}>
           {[1, 2, 3].map(i => <SkeletonMatchCard key={i} />)}
@@ -66,6 +66,7 @@ export default function FixturesScreen({ onNavigate, selectedLeagueId, navigatio
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
       <View style={{ height: 8 }} />
+      <FadeInView style={{ flex: 1 }}>
       <ScrollView
         style={{ flex: 1, backgroundColor: C.bg }}
         showsVerticalScrollIndicator={false}
@@ -101,6 +102,7 @@ export default function FixturesScreen({ onNavigate, selectedLeagueId, navigatio
           <View style={{ height: 24 }} />
         </View>
       </ScrollView>
+      </FadeInView>
     </SafeAreaView>
   );
 }

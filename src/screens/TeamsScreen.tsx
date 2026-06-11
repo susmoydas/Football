@@ -5,7 +5,7 @@ import { HugeiconsIcon } from '@hugeicons/react-native';
 import { Search01Icon } from '@hugeicons/core-free-icons';
 import { C, Team } from '../types';
 import { fetchTeamsByLeague, FEATURED_LEAGUES } from '../services/api';
-import { TeamCard, LoadingSpinner, EmptyState, SkeletonTeamCardGrid, Skeleton } from '../components';
+import { TeamCard, EmptyState, SkeletonTeamCardGrid, SkeletonBlock, SoftSkeleton, FadeInView } from '../components';
 
 interface Props {
   selectedLeagueId: string;
@@ -34,7 +34,9 @@ export default function TeamsScreen({ selectedLeagueId, navigation, onNavigate }
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
       <View style={{ flex: 1, backgroundColor: C.bg }}>
         <View style={s.searchRow}>
-          <Skeleton variant="rounded" startColor="bg-background-100" className="h-10 flex-1 rounded-xl" />
+          <SoftSkeleton>
+            <SkeletonBlock style={{ flex: 1, height: 40, borderRadius: 12 }} />
+          </SoftSkeleton>
         </View>
         <View style={{ flexDirection: 'row', padding: 16, gap: 10 }}>
           <SkeletonTeamCardGrid />
@@ -46,6 +48,7 @@ export default function TeamsScreen({ selectedLeagueId, navigation, onNavigate }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
+      <FadeInView style={{ flex: 1 }}>
       <View style={{ flex: 1, backgroundColor: C.bg }}>
       <View style={s.searchRow}>
         <View style={s.searchBox}>
@@ -78,6 +81,7 @@ export default function TeamsScreen({ selectedLeagueId, navigation, onNavigate }
         />
       )}
     </View>
+    </FadeInView>
     </SafeAreaView>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StatusBar, Platform, ActivityIndicator, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   useFonts,
   Lexend_400Regular,
@@ -54,8 +55,17 @@ const NAV_ITEMS: { id: string; icon: any; label: string }[] = [
 
 function BottomNav({ state, navigation }: { state: any; navigation: any }) {
   const active = state.routes[state.index].name;
+  const currentRoute = state.routes[state.index];
+  const stackState = currentRoute?.state;
+  const stackRoute = stackState?.routes?.[stackState?.index ?? 0];
+  const nestedRoute = stackRoute?.state?.routes?.[stackRoute.state.index ?? 0]?.name
+    || stackRoute?.state?.routeNames?.[0];
+  const detailScreens = ['MatchDetails', 'TeamDetails', 'PlayerProfile', 'CoachProfile'];
+  const isDetail = stackState?.routes?.some((r: any) => detailScreens.includes(r.name))
+    && stackState.index > 0;
+  if (isDetail) return null;
   return (
-    <Box className="bg-background-0" style={{ paddingTop: 0, paddingBottom: Platform.OS === 'ios' ? 4 : 2 }}>
+    <Box style={{ backgroundColor: '#000000', paddingTop: 0, paddingBottom: Platform.OS === 'ios' ? 4 : 2 }}>
       <HStack className="items-start justify-around">
         {NAV_ITEMS.map(item => {
           const isActive = active === item.id;
@@ -131,7 +141,12 @@ const buildNavigate = (navigation: any) => (screen: Screen | string, data?: any)
 
 function HomeStack({ selectedLeagueId, onLeagueChange }: { selectedLeagueId: string; onLeagueChange: (id: string) => void; }) {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={{
+      headerShown: false,
+      animation: 'none',
+      animationDuration: 300,
+      contentStyle: { backgroundColor: '#000000' },
+    }}>
       <Stack.Screen name="HomeMain">
         {({ navigation }) => (
           <HomeScreen
@@ -158,13 +173,44 @@ function HomeStack({ selectedLeagueId, onLeagueChange }: { selectedLeagueId: str
           <NewsArticleScreen navigation={navigation} route={route} />
         )}
       </Stack.Screen>
+      <Stack.Screen name="TeamDetails">
+        {({ navigation, route }: { navigation: any; route: { params?: any } }) => (
+          <TeamDetailsScreen
+            navigation={navigation}
+            teamData={route.params?.teamData as Team}
+            selectedLeagueId={route.params?.leagueId as string}
+            onNavigate={buildNavigate(navigation)}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="PlayerProfile">
+        {({ navigation, route }: { navigation: any; route: { params?: any } }) => (
+          <PlayerDetailsScreen
+            navigation={navigation}
+            playerData={route.params?.playerData as Player}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="CoachProfile">
+        {({ navigation, route }: { navigation: any; route: { params?: any } }) => (
+          <CoachDetailsScreen
+            navigation={navigation}
+            coachData={route.params?.coachData as CoachStaff}
+          />
+        )}
+      </Stack.Screen>
     </Stack.Navigator>
   );
 }
 
 function FixturesStack({ selectedLeagueId }: { selectedLeagueId: string; }) {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={{
+      headerShown: false,
+      animation: 'none',
+      animationDuration: 300,
+      contentStyle: { backgroundColor: '#000000' },
+    }}>
       <Stack.Screen name="FixturesMain">
         {({ navigation }) => (
           <FixturesScreen
@@ -198,7 +244,12 @@ function FixturesStack({ selectedLeagueId }: { selectedLeagueId: string; }) {
 
 function TeamsStack({ selectedLeagueId }: { selectedLeagueId: string; }) {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={{
+      headerShown: false,
+      animation: 'none',
+      animationDuration: 300,
+      contentStyle: { backgroundColor: '#000000' },
+    }}>
       <Stack.Screen name="TeamsMain">
         {({ navigation }) => (
           <TeamsScreen
@@ -238,15 +289,21 @@ function TeamsStack({ selectedLeagueId }: { selectedLeagueId: string; }) {
   );
 }
 
-function StandingsStack({ selectedLeagueId }: { selectedLeagueId: string }) {
+function StandingsStack({ selectedLeagueId, onLeagueChange }: { selectedLeagueId: string; onLeagueChange: (id: string) => void }) {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={{
+      headerShown: false,
+      animation: 'none',
+      animationDuration: 300,
+      contentStyle: { backgroundColor: '#000000' },
+    }}>
       <Stack.Screen name="StandingsMain">
         {({ navigation }) => (
           <StandingsScreen
             selectedLeagueId={selectedLeagueId}
             navigation={navigation}
             onNavigate={buildNavigate(navigation)}
+            onLeagueChange={onLeagueChange}
           />
         )}
       </Stack.Screen>
@@ -282,7 +339,12 @@ function StandingsStack({ selectedLeagueId }: { selectedLeagueId: string }) {
 
 function MoreStack({ selectedLeagueId, onLeagueChange }: { selectedLeagueId: string; onLeagueChange: (id: string) => void; }) {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={{
+      headerShown: false,
+      animation: 'none',
+      animationDuration: 300,
+      contentStyle: { backgroundColor: '#000000' },
+    }}>
       <Stack.Screen name="MoreMain">
         {() => <MoreScreen selectedLeagueId={selectedLeagueId} onLeagueChange={onLeagueChange} />}
       </Stack.Screen>
@@ -292,10 +354,17 @@ function MoreStack({ selectedLeagueId, onLeagueChange }: { selectedLeagueId: str
 
 function MainTabs({ selectedLeagueId, onLeagueChange }: { selectedLeagueId: string; onLeagueChange: (id: string) => void; }) {
   return (
-    <Tab.Navigator tabBar={props => <BottomNav {...props} />} screenOptions={{ headerShown: false, tabBarStyle: { padding: 0, margin: 0, backgroundColor: 'transparent', borderTopWidth: 0, elevation: 0 } }}>
+    <Tab.Navigator
+      tabBar={props => <BottomNav {...props} />}
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarStyle: { padding: 0, margin: 0, backgroundColor: '#000000', borderTopWidth: 0, elevation: 0 },
+      })}
+    >
       <Tab.Screen name="Home">
         {() => (
           <HomeStack
+            key={selectedLeagueId}
             selectedLeagueId={selectedLeagueId}
             onLeagueChange={onLeagueChange}
           />
@@ -304,6 +373,7 @@ function MainTabs({ selectedLeagueId, onLeagueChange }: { selectedLeagueId: stri
       <Tab.Screen name="Fixtures">
         {() => (
           <FixturesStack
+            key={selectedLeagueId}
             selectedLeagueId={selectedLeagueId}
           />
         )}
@@ -311,15 +381,16 @@ function MainTabs({ selectedLeagueId, onLeagueChange }: { selectedLeagueId: stri
       <Tab.Screen name="Teams">
         {() => (
           <TeamsStack
+            key={selectedLeagueId}
             selectedLeagueId={selectedLeagueId}
           />
         )}
       </Tab.Screen>
       <Tab.Screen name="Standings">
-        {() => <StandingsStack selectedLeagueId={selectedLeagueId} />}
+        {() => <StandingsStack key={selectedLeagueId} selectedLeagueId={selectedLeagueId} onLeagueChange={onLeagueChange} />}
       </Tab.Screen>
       <Tab.Screen name="More">
-        {() => <MoreStack selectedLeagueId={selectedLeagueId} onLeagueChange={onLeagueChange} />}
+        {() => <MoreStack key={selectedLeagueId} selectedLeagueId={selectedLeagueId} onLeagueChange={onLeagueChange} />}
       </Tab.Screen>
     </Tab.Navigator>
   );
@@ -334,7 +405,7 @@ export default function App() {
     Lexend_800ExtraBold,
   });
   const [showSplash, setShowSplash] = useState(true);
-  const [selectedLeagueId, setSelectedLeagueId] = useState('1');
+  const [selectedLeagueId, setSelectedLeagueId] = useState('27');
 
   const LEGACY_LEAGUE_MAP: Record<string, string> = {
     '4328': '1', '4335': '3', '4331': '5', '4332': '4',
@@ -348,24 +419,16 @@ export default function App() {
     });
   }, []);
 
-  if (!fontsLoaded) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator size="large" color="#0D9F68" />
-      </View>
-    );
-  }
-
-  if (showSplash) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <StatusBar barStyle="light-content" backgroundColor="#000000" />
-        <SplashScreen onFinish={() => setShowSplash(false)} />
-      </QueryClientProvider>
-    );
-  }
-
-  return (
+  const content = !fontsLoaded ? (
+    <View style={{ flex: 1, backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center' }}>
+      <ActivityIndicator size="large" color="#0D9F68" />
+    </View>
+  ) : showSplash ? (
+    <QueryClientProvider client={queryClient}>
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <SplashScreen onFinish={() => setShowSplash(false)} />
+    </QueryClientProvider>
+  ) : (
     <GluestackUIProvider mode="dark">
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
@@ -381,6 +444,12 @@ export default function App() {
         </SafeAreaProvider>
       </QueryClientProvider>
     </GluestackUIProvider>
+  );
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      {content}
+    </GestureHandlerRootView>
   );
 }
 

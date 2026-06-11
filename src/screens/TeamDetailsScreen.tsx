@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Box } from '@/components/ui/box';
 import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
-import { TeamBadge, MatchCard, LoadingSpinner, Header, AnimatedPressable } from '../components';
+import { TeamBadge, MatchCard, Header, AnimatedPressable, SkeletonBlock, SoftSkeleton, FadeInView, SkeletonMatchCard } from '../components';
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { Location01Icon, Calendar01Icon, GlobeIcon } from '@hugeicons/core-free-icons';
 
@@ -43,13 +43,19 @@ export default function TeamDetailsScreen({ teamData, selectedLeagueId, navigati
       const [squad, staff, recent, upcoming] = await Promise.all([
         fetchTeamSquad(teamData.id),
         fetchTeamCoachingStaff(teamData.id),
-        fetchTeamEvents(teamData.id, 'finished', 5),
-        fetchTeamEvents(teamData.id, 'notstarted', 5),
+        fetchTeamEvents(teamData.id, 'finished', 50, selectedLeagueId),
+        fetchTeamEvents(teamData.id, 'notstarted', 50, selectedLeagueId),
       ]);
       setPlayers(squad);
-      setCoachingStaff(staff);
+      setCoachingStaff(uniqueByNameOrId(staff));
       setRecentMatches(recent);
-      setUpcomingMatches(upcoming);
+      setUpcomingMatches(
+        [...upcoming].sort((a, b) => {
+          if (a.date < b.date) return -1;
+          if (a.date > b.date) return 1;
+          return a.time.localeCompare(b.time);
+        })
+      );
       setLoading(false);
     })();
   }, [teamData.id]);
@@ -57,7 +63,54 @@ export default function TeamDetailsScreen({ teamData, selectedLeagueId, navigati
   if (loading || !team) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
-        <LoadingSpinner message="Loading team details..." />
+        <Header title="Team" showBack onBackPress={() => navigation?.goBack()} />
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
+          <SoftSkeleton>
+            <Card size="sm" variant="elevated" className="rounded-xl mx-4 mb-4 items-center py-6">
+              <SkeletonBlock variant="circular" style={{ width: 80, height: 80, marginBottom: 12 }} />
+              <SkeletonBlock style={{ width: 160, height: 22, marginBottom: 8 }} />
+              <SkeletonBlock style={{ width: 100, height: 14 }} />
+            </Card>
+            <Box className="mx-4 mb-4">
+              <HStack className="gap-3 mb-3">
+                <Card size="sm" variant="elevated" className="rounded-xl flex-1 px-4 py-3.5">
+                  <SkeletonBlock style={{ width: 80, height: 10, marginBottom: 8 }} />
+                  <SkeletonBlock style={{ width: 100, height: 14 }} />
+                </Card>
+                <Card size="sm" variant="elevated" className="rounded-xl flex-1 px-4 py-3.5">
+                  <SkeletonBlock style={{ width: 80, height: 10, marginBottom: 8 }} />
+                  <SkeletonBlock style={{ width: 100, height: 14 }} />
+                </Card>
+              </HStack>
+              <HStack className="gap-3">
+                <Card size="sm" variant="elevated" className="rounded-xl flex-1 px-4 py-3.5">
+                  <SkeletonBlock style={{ width: 80, height: 10, marginBottom: 8 }} />
+                  <SkeletonBlock style={{ width: 100, height: 14 }} />
+                </Card>
+                <Card size="sm" variant="elevated" className="rounded-xl flex-1 px-4 py-3.5">
+                  <SkeletonBlock style={{ width: 80, height: 10, marginBottom: 8 }} />
+                  <SkeletonBlock style={{ width: 100, height: 14 }} />
+                </Card>
+              </HStack>
+            </Box>
+            <Box className="mx-4 mb-4">
+              <SkeletonBlock style={{ width: 120, height: 20, marginBottom: 12 }} />
+              <Card size="sm" variant="elevated" className="rounded-xl px-4 py-4 mb-2">
+                <HStack className="items-center">
+                  <SkeletonBlock variant="circular" style={{ width: 56, height: 56 }} />
+                  <VStack className="flex-1 ml-4 gap-2">
+                    <SkeletonBlock style={{ width: 120, height: 14 }} />
+                    <SkeletonBlock style={{ width: 80, height: 10 }} />
+                  </VStack>
+                </HStack>
+              </Card>
+            </Box>
+            <Box className="mx-4 mb-4">
+              <SkeletonBlock style={{ width: 80, height: 20, marginBottom: 12 }} />
+              {[1, 2, 3].map(i => <SkeletonMatchCard key={i} />)}
+            </Box>
+          </SoftSkeleton>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -67,6 +120,7 @@ export default function TeamDetailsScreen({ teamData, selectedLeagueId, navigati
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
       <Header title={team.name} showBack onBackPress={() => navigation?.goBack()} />
+      <FadeInView style={{ flex: 1 }}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Hero Card */}
         <Card size="sm" variant="elevated" className="rounded-xl mx-4 mb-4 items-center py-6">
@@ -125,16 +179,6 @@ export default function TeamDetailsScreen({ teamData, selectedLeagueId, navigati
           </Box>
         )}
 
-        {/* Recent Results */}
-        {recentMatches.length > 0 && (
-          <Box className="mx-4 mb-4">
-            <Heading size="lg" className="text-typography-0 font-bold mb-3">Recent Results</Heading>
-            {recentMatches.map(m => (
-              <MatchCard key={m.id} match={m} onPress={() => onNavigate?.('match-details', m)} />
-            ))}
-          </Box>
-        )}
-
         {/* Upcoming Fixtures */}
         {upcomingMatches.length > 0 && (
           <Box className="mx-4 mb-4">
@@ -144,7 +188,18 @@ export default function TeamDetailsScreen({ teamData, selectedLeagueId, navigati
             ))}
           </Box>
         )}
+
+        {/* Recent Results */}
+        {recentMatches.length > 0 && (
+          <Box className="mx-4 mb-4">
+            <Heading size="lg" className="text-typography-0 font-bold mb-3">Recent Results</Heading>
+            {recentMatches.map(m => (
+              <MatchCard key={m.id} match={m} onPress={() => onNavigate?.('match-details', m)} />
+            ))}
+          </Box>
+        )}
       </ScrollView>
+      </FadeInView>
     </SafeAreaView>
   );
 }
@@ -265,6 +320,17 @@ function InfoCard({ icon, label, value }: { icon: any; label: string; value: str
 
 function getInitials(name: string): string {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
+
+function uniqueByNameOrId(items: CoachStaff[]): CoachStaff[] {
+  const seen = new Set<string>();
+  return items.filter(item => {
+    const nameKey = item.name.toLowerCase().trim();
+    if (seen.has(nameKey)) return false;
+    seen.add(nameKey);
+    seen.add(item.id);
+    return true;
+  });
 }
 
 function groupByPosition(players: Player[]): Record<string, Player[]> {

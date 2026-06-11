@@ -2,17 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HugeiconsIcon } from '@hugeicons/react-native';
-import { ArrowDown01Icon, ArrowUp01Icon } from '@hugeicons/core-free-icons';
-import { C, Match, Screen, NewsArticle } from '../types';
+import { ArrowDown01Icon } from '@hugeicons/core-free-icons';
+import { C, Match, Screen, NewsArticle, League } from '../types';
 import {
-  fetchLiveEvents, fetchLeagueEvents, fetchNextEvents, fetchFootballNews,
+  fetchLiveEvents, fetchLeagueEvents, fetchNextEvents, fetchFootballNews, fetchLeagues,
   FEATURED_LEAGUES,
 } from '../services/api';
 import { checkAndNotifyMatches } from '../services/notifications';
-import { getFavMatches } from '../services/storage';
+import { getFavMatches, saveSelectedLeague, getCachedMatches, setCachedMatches, getCachedLeagues, setCachedLeagues } from '../services/storage';
+import LeagueBottomSheet from '../components/home/LeagueBottomSheet';
 import {
-  WorldCupBanner, MatchCard, FilterPill, SectionHeader, LoadingSpinner,
-  NewsFeedCard, SkeletonMatchCard, SkeletonNewsCard, Skeleton,
+  WorldCupBanner, MatchCard, FilterPill, SectionHeader,
+  NewsFeedCard, SkeletonMatchCard, SkeletonNewsCard, SkeletonBanner, SkeletonPillBar,
+  FadeInView,
 } from '../components';
 
 interface Props {
@@ -41,18 +43,23 @@ export default function HomeScreen({ onNavigate, selectedLeagueId, onLeagueChang
   const [liveMatches, setLiveMatches] = useState<Match[]>([]);
   const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [news, setNews] = useState<NewsArticle[]>([]);
+  const [allLeagues, setAllLeagues] = useState<League[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [showLeagues, setShowLeagues] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
 
-  const activeLeague = FEATURED_LEAGUES.find(l => l.id === selectedLeagueId);
+  const activeLeague = FEATURED_LEAGUES.find(l => l.id === selectedLeagueId) || allLeagues.find(l => l.id === selectedLeagueId);
   const activeName = activeLeague?.name ?? 'Select League';
 
   function isPlaceholder(name: string): boolean {
     return /^[A-Z]\d+$/.test(name);
   }
 
-  const load = async () => {
+  function shouldFilterPlaceholder(leagueId: string): boolean {
+    return leagueId !== '27';
+  }
+
+  const load = async (cached?: Match[]) => {
     try {
       const [live, all, next, newsData] = await Promise.all([
         fetchLiveEvents(selectedLeagueId),
@@ -67,23 +74,58 @@ export default function HomeScreen({ onNavigate, selectedLeagueId, onLeagueChang
       const merged = [...live, ...all, ...next].filter(m => {
         if (seen.has(m.id)) return false;
         seen.add(m.id);
-        if (isPlaceholder(m.homeTeam) || isPlaceholder(m.awayTeam)) return false;
+        if (shouldFilterPlaceholder(selectedLeagueId) && (isPlaceholder(m.homeTeam) || isPlaceholder(m.awayTeam))) return false;
         return true;
+      }).sort((a, b) => {
+        if (a.date < b.date) return -1;
+        if (a.date > b.date) return 1;
+        return a.time.localeCompare(b.time);
       });
       setAllMatches(merged);
+      setCachedMatches(selectedLeagueId, merged);
 
       const favIds = new Set(await getFavMatches());
       checkAndNotifyMatches(merged, favIds).catch(error => console.warn('Failed to send notifications:', error));
     } catch {
-      setLiveMatches([]);
-      setAllMatches([]);
+      if (!cached) {
+        setLiveMatches([]);
+        setAllMatches([]);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  useEffect(() => { setLoading(true); load(); }, [selectedLeagueId]);
+  useEffect(() => {
+    setLoading(true);
+    getCachedMatches(selectedLeagueId).then(cached => {
+      if (cached && cached.length > 0) {
+        setAllMatches(cached);
+        setLoading(false);
+      }
+      load(cached ?? undefined);
+    });
+  }, [selectedLeagueId]);
+
+  useEffect(() => {
+    getCachedLeagues().then(cached => {
+      if (cached && cached.length > 0) {
+        setAllLeagues(cached as League[]);
+      }
+      fetchLeagues().then(apiLeagues => {
+        const merged: League[] = [];
+        const seen = new Set<string>();
+        for (const l of [...FEATURED_LEAGUES, ...apiLeagues]) {
+          if (!seen.has(l.id)) { seen.add(l.id); merged.push(l); }
+        }
+        setAllLeagues(merged);
+        setCachedLeagues(merged);
+      }).catch(() => {
+        if (!cached) setAllLeagues(FEATURED_LEAGUES);
+      });
+    });
+  }, []);
 
   const onRefresh = () => { setRefreshing(true); load(); };
 
@@ -99,12 +141,8 @@ export default function HomeScreen({ onNavigate, selectedLeagueId, onLeagueChang
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
       <ScrollView style={s.container} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
         <View style={s.inner}>
-          <Skeleton variant="rounded" startColor="bg-background-100" className="w-full rounded-xl mb-5" style={{ height: 180 }} />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }} contentContainerStyle={{ gap: 8 }}>
-            {[1, 2, 3, 4].map(i => (
-              <Skeleton key={i} variant="rounded" startColor="bg-background-100" className="h-8 rounded-full" style={{ width: 72 }} />
-            ))}
-          </ScrollView>
+          <SkeletonBanner />
+          <SkeletonPillBar count={4} width={72} />
           {[1, 2, 3].map(i => <SkeletonMatchCard key={i} />)}
           <SkeletonNewsCard />
         </View>
@@ -114,6 +152,7 @@ export default function HomeScreen({ onNavigate, selectedLeagueId, onLeagueChang
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
+      <FadeInView style={{ flex: 1 }}>
       <ScrollView
         style={s.container}
         showsVerticalScrollIndicator={false}
@@ -189,25 +228,12 @@ export default function HomeScreen({ onNavigate, selectedLeagueId, onLeagueChang
               <SectionHeader
                 title="Upcoming"
                 rightContent={
-                  <TouchableOpacity style={s.leagueSelector} onPress={() => setShowLeagues(!showLeagues)}>
+                  <TouchableOpacity style={s.leagueSelector} onPress={() => setShowDropdown(true)}>
                     <Text style={s.leagueSelectorText} numberOfLines={1}>{activeName}</Text>
-                    <HugeiconsIcon icon={showLeagues ? ArrowUp01Icon : ArrowDown01Icon} size={16} color={C.accent} />
+                    <HugeiconsIcon icon={ArrowDown01Icon} size={16} color={C.accent} />
                   </TouchableOpacity>
                 }
               />
-              {showLeagues && (
-                <View style={s.leagueDropdown}>
-                  {FEATURED_LEAGUES.map(l => (
-                    <TouchableOpacity
-                      key={l.id}
-                      style={[s.leagueItem, l.id === selectedLeagueId && { backgroundColor: C.accent + '20' }]}
-                      onPress={() => { onLeagueChange?.(l.id); setShowLeagues(false); }}
-                    >
-                      <Text style={[s.leagueItemText, l.id === selectedLeagueId && { color: C.accent, fontWeight: '700' }]}>{l.name}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
               {allMatches.filter(m => m.status !== 'finished').slice(0, 10).map(m => (
                 <MatchCard key={m.id} match={m}
                   onPress={() => onNavigate('match-details', m)} />
@@ -229,6 +255,14 @@ export default function HomeScreen({ onNavigate, selectedLeagueId, onLeagueChang
 
         <View style={{ height: 24 }} />
       </ScrollView>
+      </FadeInView>
+      <LeagueBottomSheet
+        visible={showDropdown}
+        leagues={allLeagues}
+        selectedLeagueId={selectedLeagueId}
+        onSelectLeague={async (id) => { await saveSelectedLeague(id); onLeagueChange?.(id); }}
+        onClose={() => setShowDropdown(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -238,17 +272,12 @@ const s = StyleSheet.create({
   inner: { padding: 16 },
   emptyHint: { color: C.textSecondary, fontSize: 14, textAlign: 'center', paddingVertical: 32 },
   leagueSelector: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 0, paddingVertical: 0,
+    backgroundColor: 'transparent',
+    borderRadius: 0,
   },
-  leagueSelectorText: { color: C.accent, fontSize: 13, fontWeight: '600', maxWidth: 140 },
-  leagueDropdown: {
-    backgroundColor: C.card, borderRadius: 12, marginBottom: 12, overflow: 'hidden',
-  },
-  leagueItem: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 12, borderBottomWidth: 1, borderBottomColor: C.border,
-  },
-  leagueItemText: { color: C.textPrimary, fontSize: 13 },
+  leagueSelectorText: { color: C.accent, fontSize: 14, fontWeight: '600', maxWidth: 160 },
   newsSection: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginTop: 8, marginBottom: 4,

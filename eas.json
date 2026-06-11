@@ -12,8 +12,7 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true,
-      "withoutCredentials": true
+      "autoIncrement": true
     },
     "apk": {
       "distribution": "internal",

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, RefreshControl, Text, View } from 'react-native';
+import { ScrollView, RefreshControl, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { C, NewsArticle } from '../types';
-import { NewsFeedCard, Header, LoadingSpinner } from '../components';
+import { NewsFeedCard, Header, SkeletonNewsCard, FadeInView, SkeletonError } from '../components';
 import { fetchFootballNews } from '../services/api';
 
 interface Props {
@@ -32,50 +32,53 @@ export default function NewsScreen({ navigation }: Props) {
     load();
   }, []);
 
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
+        <Header title="News" showBack onBackPress={() => navigation?.goBack()} />
+        <ScrollView
+          style={{ flex: 1, backgroundColor: C.bg }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
+        >
+          {[1, 2, 3, 4, 5].map(i => <SkeletonNewsCard key={i} />)}
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
-      <Header
-        title="News"
-        showBack
-        onBackPress={() => navigation?.goBack()}
-      />
-      <ScrollView
-        style={{ flex: 1, backgroundColor: C.bg }}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => load(true)}
-            tintColor={C.accent}
-            colors={[C.accent]}
-          />
-        }
-      >
-        {loading ? (
-          <LoadingSpinner />
-        ) : error ? (
-          <View style={{ alignItems: 'center', paddingVertical: 48, gap: 12 }}>
-            <Text style={{ color: C.textSecondary, fontSize: 15, textAlign: 'center' }}>
-              Unable to load news.{'\n'}Pull down to retry.
-            </Text>
-          </View>
-        ) : articles.length === 0 ? (
-          <View style={{ alignItems: 'center', paddingVertical: 48 }}>
-            <Text style={{ color: C.textSecondary, fontSize: 15, textAlign: 'center' }}>
-              No news available right now.
-            </Text>
-          </View>
-        ) : (
-          articles.map(n => (
-            <NewsFeedCard
-              key={n.id}
-              article={n}
-              onPress={() => navigation?.navigate('NewsArticle', { article: n })}
+      <Header title="News" showBack onBackPress={() => navigation?.goBack()} />
+      <FadeInView style={{ flex: 1 }}>
+        <ScrollView
+          style={{ flex: 1, backgroundColor: C.bg }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => load(true)}
+              tintColor={C.accent}
+              colors={[C.accent]}
             />
-          ))
-        )}
-      </ScrollView>
+          }
+        >
+          {error ? (
+            <SkeletonError onRetry={() => load()} />
+          ) : articles.length === 0 ? (
+            <SkeletonError message="No news available right now. Pull to retry." onRetry={() => load(true)} />
+          ) : (
+            articles.map(n => (
+              <NewsFeedCard
+                key={n.id}
+                article={n}
+                onPress={() => navigation?.navigate('NewsArticle', { article: n })}
+              />
+            ))
+          )}
+        </ScrollView>
+      </FadeInView>
     </SafeAreaView>
   );
 }

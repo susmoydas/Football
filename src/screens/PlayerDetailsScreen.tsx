@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { C, Player } from '../types';
@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Box } from '@/components/ui/box';
 import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
-import { Header } from '../components';
+import { Header, SkeletonBlock, SoftSkeleton, FadeInView } from '../components';
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { Location01Icon, Calendar01Icon, ChartAverageIcon, FootballIcon } from '@hugeicons/core-free-icons';
 
@@ -19,83 +19,149 @@ interface Props {
 
 export default function PlayerDetailsScreen({ playerData, navigation }: Props) {
   const [imgError, setImgError] = useState(false);
+  const [loading, setLoading] = useState(true);
   const playerImageUrl = `https://sports.bzzoiro.com/img/player/${playerData.id}/`;
 
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 300);
+    return () => clearTimeout(t);
+  }, []);
+
   const positionLabel = playerData.specificPosition || playerData.position;
+
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
+        <Header title="Player" showBack onBackPress={() => navigation?.goBack()} />
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
+          <SoftSkeleton>
+            <Card size="sm" variant="elevated" className="rounded-xl mx-4 mb-4 items-center py-6">
+              <SkeletonBlock variant="circular" style={{ width: 80, height: 80, marginBottom: 12 }} />
+              <SkeletonBlock style={{ width: 180, height: 22, marginBottom: 8 }} />
+              <HStack className="gap-2 mt-2">
+                <SkeletonBlock style={{ width: 60, height: 28, borderRadius: 8 }} />
+                <SkeletonBlock style={{ width: 80, height: 28, borderRadius: 8 }} />
+              </HStack>
+              <SkeletonBlock style={{ width: 100, height: 14, marginTop: 12 }} />
+            </Card>
+            <Box className="mx-4 mb-4">
+              <HStack className="gap-3 mb-3">
+                <Card size="sm" variant="elevated" className="rounded-xl flex-1 px-4 py-3.5">
+                  <SkeletonBlock style={{ width: 80, height: 10, marginBottom: 8 }} />
+                  <SkeletonBlock style={{ width: 100, height: 14 }} />
+                </Card>
+                <Card size="sm" variant="elevated" className="rounded-xl flex-1 px-4 py-3.5">
+                  <SkeletonBlock style={{ width: 80, height: 10, marginBottom: 8 }} />
+                  <SkeletonBlock style={{ width: 100, height: 14 }} />
+                </Card>
+              </HStack>
+              <HStack className="gap-3">
+                <Card size="sm" variant="elevated" className="rounded-xl flex-1 px-4 py-3.5">
+                  <SkeletonBlock style={{ width: 80, height: 10, marginBottom: 8 }} />
+                  <SkeletonBlock style={{ width: 100, height: 14 }} />
+                </Card>
+                <Card size="sm" variant="elevated" className="rounded-xl flex-1 px-4 py-3.5">
+                  <SkeletonBlock style={{ width: 80, height: 10, marginBottom: 8 }} />
+                  <SkeletonBlock style={{ width: 100, height: 14 }} />
+                </Card>
+              </HStack>
+            </Box>
+            <Box className="mx-4 mb-4">
+              <SkeletonBlock style={{ width: 160, height: 20, marginBottom: 12 }} />
+              <Card size="sm" variant="elevated" className="rounded-xl px-4 py-4">
+                <HStack className="items-center justify-between">
+                  <VStack className="flex-1">
+                    <SkeletonBlock style={{ width: 80, height: 10, marginBottom: 8 }} />
+                    <SkeletonBlock style={{ width: 100, height: 22 }} />
+                  </VStack>
+                  <VStack className="items-end">
+                    <SkeletonBlock style={{ width: 80, height: 10, marginBottom: 8 }} />
+                    <SkeletonBlock style={{ width: 100, height: 14 }} />
+                  </VStack>
+                </HStack>
+              </Card>
+            </Box>
+          </SoftSkeleton>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
       <Header title={playerData.name} showBack onBackPress={() => navigation?.goBack()} />
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* Hero Card */}
-        <Card size="sm" variant="elevated" className="rounded-xl mx-4 mb-4 items-center py-6">
-          <Box className="w-20 h-20 rounded-full bg-background-100 overflow-hidden items-center justify-center mb-3">
-            {!imgError ? (
-              <Image
-                source={{ uri: playerImageUrl }}
-                style={{ width: 80, height: 80, borderRadius: 40 }}
-                resizeMode="cover"
-                onError={() => setImgError(true)}
-              />
-            ) : (
-              <Text size="3xl" className="text-typography-500 font-bold">
-                {getInitials(playerData.name)}
-              </Text>
-            )}
-          </Box>
-          <Heading size="2xl" className="text-typography-0 font-bold">{playerData.name}</Heading>
-          <HStack className="items-center gap-2 mt-1">
-            {playerData.jerseyNumber && (
-              <Box className="bg-background-100 rounded-lg px-2.5 py-1">
-                <Text size="sm" className="text-typography-500 font-bold">#{playerData.jerseyNumber}</Text>
-              </Box>
-            )}
-            <Box className={`rounded-lg px-2.5 py-1 ${playerData.availability === 'available' ? 'bg-success-600' : playerData.availability === 'injured' ? 'bg-error-500' : 'bg-warning-500'}`}>
-              <Text size="sm" className="text-white font-bold">
-                {playerData.availability === 'available' ? 'Available' : playerData.availability === 'injured' ? 'Injured' : 'Doubtful'}
-              </Text>
-            </Box>
-          </HStack>
-          <Text size="sm" className="text-typography-500 font-medium mt-2">{positionLabel}</Text>
-        </Card>
-
-        {/* Info Grid */}
-        <Box className="mx-4 mb-4">
-          <HStack className="gap-3 mb-3">
-            <InfoCard icon={Location01Icon} label="Nationality" value={playerData.nationality || 'N/A'} />
-            <InfoCard icon={Calendar01Icon} label="Date of Birth" value={playerData.dateOfBirth || 'N/A'} />
-          </HStack>
-          <HStack className="gap-3">
-            <InfoCard icon={ChartAverageIcon} label="Height" value={playerData.heightCm ? `${playerData.heightCm} cm` : 'N/A'} />
-            <InfoCard icon={FootballIcon} label="Preferred Foot" value={playerData.preferredFoot || 'N/A'} />
-          </HStack>
-        </Box>
-
-        {/* Market Value & Contract */}
-        <Box className="mx-4 mb-4">
-          <Heading size="lg" className="text-typography-0 font-bold mb-3">Contract & Value</Heading>
-          <Card size="sm" variant="elevated" className="rounded-xl px-4 py-4">
-            <HStack className="items-center">
-              <VStack className="flex-1">
-                <Text size="2xs" className="text-typography-500">Market Value</Text>
-                {playerData.marketValueEur != null ? (
-                  <Text size="xl" className="text-success-500 font-bold mt-0.5">
-                    €{formatMarketValue(playerData.marketValueEur)}
-                  </Text>
-                ) : (
-                  <Text size="sm" className="text-typography-500 mt-0.5">—</Text>
-                )}
-              </VStack>
-              <VStack className="items-end">
-                <Text size="2xs" className="text-typography-500">Contract Until</Text>
-                <Text size="sm" className="text-typography-0 font-semibold mt-0.5">
-                  {playerData.contractUntil || '—'}
+      <FadeInView style={{ flex: 1 }}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
+          {/* Hero Card */}
+          <Card size="sm" variant="elevated" className="rounded-xl mx-4 mb-4 items-center py-6">
+            <Box className="w-20 h-20 rounded-full bg-background-100 overflow-hidden items-center justify-center mb-3">
+              {!imgError ? (
+                <Image
+                  source={{ uri: playerImageUrl }}
+                  style={{ width: 80, height: 80, borderRadius: 40 }}
+                  resizeMode="cover"
+                  onError={() => setImgError(true)}
+                />
+              ) : (
+                <Text size="3xl" className="text-typography-500 font-bold">
+                  {getInitials(playerData.name)}
                 </Text>
-              </VStack>
+              )}
+            </Box>
+            <Heading size="2xl" className="text-typography-0 font-bold">{playerData.name}</Heading>
+            <HStack className="items-center gap-2 mt-1">
+              {playerData.jerseyNumber && (
+                <Box className="bg-background-100 rounded-lg px-2.5 py-1">
+                  <Text size="sm" className="text-typography-500 font-bold">#{playerData.jerseyNumber}</Text>
+                </Box>
+              )}
+              <Box className={`rounded-lg px-2.5 py-1 ${playerData.availability === 'available' ? 'bg-success-600' : playerData.availability === 'injured' ? 'bg-error-500' : 'bg-warning-500'}`}>
+                <Text size="sm" className="text-white font-bold">
+                  {playerData.availability === 'available' ? 'Available' : playerData.availability === 'injured' ? 'Injured' : 'Doubtful'}
+                </Text>
+              </Box>
             </HStack>
+            <Text size="sm" className="text-typography-500 font-medium mt-2">{positionLabel}</Text>
           </Card>
-        </Box>
-      </ScrollView>
+
+          {/* Info Grid */}
+          <Box className="mx-4 mb-4">
+            <HStack className="gap-3 mb-3">
+              <InfoCard icon={Location01Icon} label="Nationality" value={playerData.nationality || 'N/A'} />
+              <InfoCard icon={Calendar01Icon} label="Date of Birth" value={playerData.dateOfBirth || 'N/A'} />
+            </HStack>
+            <HStack className="gap-3">
+              <InfoCard icon={ChartAverageIcon} label="Height" value={playerData.heightCm ? `${playerData.heightCm} cm` : 'N/A'} />
+              <InfoCard icon={FootballIcon} label="Preferred Foot" value={playerData.preferredFoot || 'N/A'} />
+            </HStack>
+          </Box>
+
+          {/* Market Value & Contract */}
+          <Box className="mx-4 mb-4">
+            <Heading size="lg" className="text-typography-0 font-bold mb-3">Contract & Value</Heading>
+            <Card size="sm" variant="elevated" className="rounded-xl px-4 py-4">
+              <HStack className="items-center">
+                <VStack className="flex-1">
+                  <Text size="2xs" className="text-typography-500">Market Value</Text>
+                  {playerData.marketValueEur != null ? (
+                    <Text size="xl" className="text-success-500 font-bold mt-0.5">
+                      €{formatMarketValue(playerData.marketValueEur)}
+                    </Text>
+                  ) : (
+                    <Text size="sm" className="text-typography-500 mt-0.5">—</Text>
+                  )}
+                </VStack>
+                <VStack className="items-end">
+                  <Text size="2xs" className="text-typography-500">Contract Until</Text>
+                  <Text size="sm" className="text-typography-0 font-semibold mt-0.5">
+                    {playerData.contractUntil || '—'}
+                  </Text>
+                </VStack>
+              </HStack>
+            </Card>
+          </Box>
+        </ScrollView>
+      </FadeInView>
     </SafeAreaView>
   );
 }

@@ -490,9 +490,19 @@ async function getVenueName(id: number | null): Promise<string> {
 
 async function toMatch(e: BSDEvent): Promise<Match> {
   const venueFromEvent = e.venue || e.venue_name || '';
+  const leagueName = e.league_name ?? (e.league_id ? await getLeagueName(e.league_id) : '');
+  
+  let finalLeagueName = leagueName;
+  if (!finalLeagueName && e.league_id) {
+    const featuredLeague = FEATURED_LEAGUES.find(l => l.id === String(e.league_id));
+    if (featuredLeague) {
+      finalLeagueName = featuredLeague.name;
+    }
+  }
+  
   return {
     id: String(e.id),
-    league: e.league_name ?? await getLeagueName(e.league_id),
+    league: finalLeagueName,
     homeTeam: e.home_team,
     awayTeam: e.away_team,
     homeScore: e.home_score,
@@ -541,6 +551,7 @@ interface BSDLeague {
   country_code: string;
   is_women: boolean;
   is_active: boolean;
+  strLeagueBadge?: string;
 }
 
 function toLeague(l: BSDLeague): League {
@@ -548,6 +559,7 @@ function toLeague(l: BSDLeague): League {
     id: String(l.id),
     name: l.name,
     country: l.country,
+    badge: l.strLeagueBadge,
   };
 }
 
@@ -586,18 +598,18 @@ function toStanding(r: BSDStandingRow): Standing {
 // ─── Featured leagues ─────────────────────────────────────────────────────────
 
 export const FEATURED_LEAGUES: League[] = [
-  { id: '27', name: 'World Cup 2026', badge: undefined, country: 'International' },
-  { id: '1', name: 'Premier League', badge: undefined, country: 'England' },
-  { id: '3', name: 'La Liga', badge: undefined, country: 'Spain' },
-  { id: '5', name: 'Bundesliga', badge: undefined, country: 'Germany' },
-  { id: '7', name: 'UEFA Champions League', badge: undefined, country: 'Europe' },
-  { id: '4', name: 'Serie A', badge: undefined, country: 'Italy' },
-  { id: '6', name: 'Ligue 1', badge: undefined, country: 'France' },
-  { id: '2', name: 'Liga Portugal Betclic', badge: undefined, country: 'Portugal' },
-  { id: '10', name: 'Eredivisie', badge: undefined, country: 'Netherlands' },
-  { id: '11', name: 'Trendyol Super Lig', badge: undefined, country: 'Turkey' },
-  { id: '13', name: 'Scottish Premiership', badge: undefined, country: 'Scotland' },
-  { id: '14', name: 'Pro League', badge: undefined, country: 'Belgium' },
+  { id: '27', name: 'FIFA World Cup 2026', badge: 'https://sports.bzzoiro.com/img/league/27/', country: 'International' },
+  { id: '1', name: 'Premier League', badge: 'https://sports.bzzoiro.com/img/league/1/', country: 'England' },
+  { id: '3', name: 'La Liga', badge: 'https://sports.bzzoiro.com/img/league/3/', country: 'Spain' },
+  { id: '5', name: 'Bundesliga', badge: 'https://sports.bzzoiro.com/img/league/5/', country: 'Germany' },
+  { id: '7', name: 'UEFA Champions League', badge: 'https://sports.bzzoiro.com/img/league/7/', country: 'Europe' },
+  { id: '4', name: 'Serie A', badge: 'https://sports.bzzoiro.com/img/league/4/', country: 'Italy' },
+  { id: '6', name: 'Ligue 1', badge: 'https://sports.bzzoiro.com/img/league/6/', country: 'France' },
+  { id: '2', name: 'Liga Portugal Betclic', badge: 'https://sports.bzzoiro.com/img/league/2/', country: 'Portugal' },
+  { id: '10', name: 'Eredivisie', badge: 'https://sports.bzzoiro.com/img/league/10/', country: 'Netherlands' },
+  { id: '11', name: 'Trendyol Super Lig', badge: 'https://sports.bzzoiro.com/img/league/11/', country: 'Turkey' },
+  { id: '13', name: 'Scottish Premiership', badge: 'https://sports.bzzoiro.com/img/league/13/', country: 'Scotland' },
+  { id: '14', name: 'Pro League', badge: 'https://sports.bzzoiro.com/img/league/14/', country: 'Belgium' },
 ];
 
 // ─── Team country cache (name -> flag) ────────────────────────────────────────
@@ -677,7 +689,7 @@ export async function fetchLiveEvents(leagueId?: string): Promise<Match[]> {
 export async function fetchLeagueEvents(leagueId: string): Promise<Match[]> {
   try {
     const [eventsResp, _] = await Promise.all([
-      api.get('/events/', { params: { league_id: leagueId, limit: 50 } }),
+      api.get('/events/', { params: { league_id: leagueId, limit: 200 } }),
       ensureTeamFlagCache(leagueId),
     ]);
     const matches = await mapEvents(eventsResp.data);
@@ -691,7 +703,7 @@ export async function fetchNextEvents(leagueId: string): Promise<Match[]> {
   try {
     const [eventsResp, _] = await Promise.all([
       api.get('/events/', {
-        params: { league_id: leagueId, status: 'notstarted', limit: 15 },
+        params: { league_id: leagueId, status: 'notstarted', limit: 200 },
       }),
       ensureTeamFlagCache(leagueId),
     ]);
@@ -706,7 +718,7 @@ export async function fetchLastEvents(leagueId: string): Promise<Match[]> {
   try {
     const [eventsResp, _] = await Promise.all([
       api.get('/events/', {
-        params: { league_id: leagueId, status: 'finished', limit: 15 },
+        params: { league_id: leagueId, status: 'finished', limit: 200 },
       }),
       ensureTeamFlagCache(leagueId),
     ]);
@@ -726,7 +738,7 @@ export async function fetchRecentResults(leagueId?: string): Promise<Match[]> {
       status: 'finished',
       date_from: past.toISOString().split('T')[0],
       date_to: now.toISOString().split('T')[0],
-      limit: 50,
+      limit: 200,
     };
     if (leagueId) params.league_id = leagueId;
     const { data } = await api.get('/events/', { params });
@@ -913,10 +925,11 @@ export async function fetchCoach(coachId: string): Promise<CoachStaff | null> {
   }
 }
 
-export async function fetchTeamEvents(teamId: string, status?: string, limit = 10): Promise<Match[]> {
+export async function fetchTeamEvents(teamId: string, status?: string, limit = 10, leagueId?: string): Promise<Match[]> {
   try {
     const params: Record<string, any> = { team_id: teamId, limit };
     if (status) params.status = status;
+    if (leagueId) params.league_id = leagueId;
     const { data } = await api.get('/events/', { params });
     const events = extractEvents(data);
     const matches = await Promise.all(events.map(e => toMatch(e)));
