@@ -33,7 +33,7 @@ function getInitials(name?: string): string {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
-export function TeamBadge({ uri, size = 44, name }: { uri?: string; size?: number; name?: string }) {
+export const TeamBadge = React.memo(function TeamBadge({ uri, size = 44, name }: { uri?: string; size?: number; name?: string }) {
   const [imgError, setImgError] = React.useState(false);
   const initials = getInitials(name);
 
@@ -52,7 +52,7 @@ export function TeamBadge({ uri, size = 44, name }: { uri?: string; size?: numbe
       {initials}
     </Text>
   );
-}
+});
 
 export function StatusBadge({ status, progress }: { status: Match['status']; progress?: string }) {
   if (status === 'live') {
@@ -82,7 +82,7 @@ interface MatchCardProps {
   onPress?: () => void;
 }
 
-export function MatchCard({ match, onPress }: MatchCardProps) {
+export const MatchCard = React.memo(function MatchCard({ match, onPress }: MatchCardProps) {
   const isLive = match.status === 'live';
   const isFinished = match.status === 'finished';
   const showScore = isLive || isFinished;
@@ -195,7 +195,7 @@ export function MatchCard({ match, onPress }: MatchCardProps) {
       </Card>
     </AnimatedPressable>
   );
-}
+});
 
 interface TeamCardProps {
   team: Team;

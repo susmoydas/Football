@@ -1,23 +1,18 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React from 'react';
+import { View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { C } from '../types';
 import { AppLogo } from '../components';
 
-interface Props { onFinish: () => void; }
-
-export default function SplashScreen({ onFinish }: Props) {
-  useEffect(() => {
-    const t = setTimeout(onFinish, 1500);
-    return () => clearTimeout(t);
-  }, []);
-
+export default function SplashScreen() {
   return (
-    <View style={s.container}>
-      <AppLogo size={96} />
-    </View>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: C.bg }}
+      edges={['top', 'bottom']}
+    >
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <AppLogo size={64} />
+      </View>
+    </SafeAreaView>
   );
 }
-
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
-});

@@ -4,7 +4,7 @@ import { BSD } from '../config';
 
 const api = axios.create({
   baseURL: BSD.BASE_URL,
-  timeout: 15000,
+  timeout: 10000,
   headers: { Authorization: `Token ${BSD.TOKEN}` },
 });
 
@@ -510,7 +510,7 @@ async function toMatch(e: BSDEvent): Promise<Match> {
     status: resolveStatus(e.status),
     time: formatTime(e.event_date),
     date: formatDate(e.event_date),
-    venue: venueFromEvent || await getVenueName(e.venue_id),
+    venue: venueFromEvent,
     progress: e.current_minute != null ? String(e.current_minute) : undefined,
     homeTeamId: e.home_team_id != null ? String(e.home_team_id) : undefined,
     awayTeamId: e.away_team_id != null ? String(e.away_team_id) : undefined,
@@ -643,16 +643,18 @@ function findLeague(leagueName: string): League | undefined {
 
 function enrichMatchFlags(matches: Match[]): Match[] {
   return matches.map(m => {
-    const hc = teamCountryCache.get(m.homeTeam.toLowerCase()) || findLeague(m.league)?.country || '';
-    const ac = teamCountryCache.get(m.awayTeam.toLowerCase()) || findLeague(m.league)?.country || '';
+    const homeName = m.homeTeam ?? '';
+    const awayName = m.awayTeam ?? '';
+    const hc = teamCountryCache.get(homeName.toLowerCase()) || findLeague(m.league)?.country || '';
+    const ac = teamCountryCache.get(awayName.toLowerCase()) || findLeague(m.league)?.country || '';
     return {
       ...m,
       homeBadge: m.homeTeamId
         ? `https://sports.bzzoiro.com/img/team/${m.homeTeamId}/`
-        : getWorldCupFlagUrl(m.homeTeam) || getWorldCupFlagUrl(hc) || undefined,
+        : getWorldCupFlagUrl(homeName) || getWorldCupFlagUrl(hc) || undefined,
       awayBadge: m.awayTeamId
         ? `https://sports.bzzoiro.com/img/team/${m.awayTeamId}/`
-        : getWorldCupFlagUrl(m.awayTeam) || getWorldCupFlagUrl(ac) || undefined,
+        : getWorldCupFlagUrl(awayName) || getWorldCupFlagUrl(ac) || undefined,
     };
   });
 }
@@ -995,7 +997,7 @@ export async function fetchGroupedStandings(leagueId: string): Promise<Record<st
       return result;
     }
     if (data.standings) {
-      return { Standings: data.standings.map(mapStandingRow) };
+      return { Table: data.standings.map(mapStandingRow) };
     }
     return {};
   } catch {

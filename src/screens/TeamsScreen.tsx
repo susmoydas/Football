@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { Search01Icon } from '@hugeicons/core-free-icons';
-import { C, Team } from '../types';
-import { fetchTeamsByLeague, FEATURED_LEAGUES } from '../services/api';
+import { C } from '../types';
+import { useTeams } from '../services/queries';
 import { TeamCard, EmptyState, SkeletonTeamCardGrid, SkeletonBlock, SoftSkeleton, FadeInView } from '../components';
 
 interface Props {
@@ -14,23 +14,13 @@ interface Props {
 }
 
 export default function TeamsScreen({ selectedLeagueId, navigation, onNavigate }: Props) {
-  const [teams, setTeams] = useState<Team[]>([]);
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
-
-  const league = FEATURED_LEAGUES.find(l => l.id === selectedLeagueId) ?? FEATURED_LEAGUES[0];
-
-  useEffect(() => {
-    setLoading(true);
-    fetchTeamsByLeague(selectedLeagueId).then(t => {
-      setTeams(t);
-      setLoading(false);
-    });
-  }, [selectedLeagueId]);
+  const { data: apiTeams, isLoading } = useTeams(selectedLeagueId);
+  const teams = apiTeams ?? [];
 
   const filtered = teams.filter(t => t.name.toLowerCase().includes(search.toLowerCase()));
 
-  if (loading) return (
+  if (isLoading) return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top', 'bottom']}>
       <View style={{ flex: 1, backgroundColor: C.bg }}>
         <View style={s.searchRow}>

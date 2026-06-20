@@ -1,5 +1,6 @@
-import React, { useMemo, useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import React, { useMemo, useCallback, useState, useRef } from 'react';
+import { View, Text, Image, StyleSheet } from 'react-native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { Search01Icon, Cancel01Icon, CheckmarkCircle01Icon } from '@hugeicons/core-free-icons';
@@ -41,6 +42,7 @@ const Handle = () => (
 export default function LeagueBottomSheet({
   visible, leagues, selectedLeagueId, onSelectLeague, onClose,
 }: Props) {
+  const bottomSheetRef = useRef<any>(null);
   const [search, setSearch] = useState('');
 
   const filteredLeagues = useMemo(() => {
@@ -74,6 +76,7 @@ export default function LeagueBottomSheet({
 
   return (
     <BottomSheet
+      ref={bottomSheetRef}
       index={visible ? 1 : -1}
       snapPoints={SNAP_POINTS}
       onChange={handleSheetChange}
@@ -88,7 +91,7 @@ export default function LeagueBottomSheet({
     >
       <View style={s.headerRow}>
         <Text style={s.title}>Leagues</Text>
-        <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+        <TouchableOpacity onPress={() => bottomSheetRef.current?.close()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} style={{ padding: 4 }}>
           <HugeiconsIcon icon={Cancel01Icon} size={24} color={C.textSecondary} />
         </TouchableOpacity>
       </View>

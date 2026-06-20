@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, Component } from 'react';
 import { StatusBar, Platform, ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
@@ -22,8 +22,10 @@ import { Pressable } from '@/components/ui/pressable';
 import { HugeiconsIcon } from '@hugeicons/react-native';
 import { Home01Icon, Calendar03Icon, UserGroupIcon, ChartIcon, Menu02Icon } from '@hugeicons/core-free-icons';
 import { Screen, Match, Team, Player, CoachStaff } from './src/types';
-import { getSelectedLeague } from './src/services/storage';
+import { getSelectedLeague, hydrateSyncCache, setCachedMatches, setCachedLeagues, setCachedTeams, setCachedNews } from './src/services/storage';
 import { initNotifications } from './src/services/notifications';
+import { fetchLiveEvents, fetchLeagueEvents, fetchNextEvents, fetchRecentResults, fetchLeagues, fetchFootballNews, fetchTeamsByLeague, FEATURED_LEAGUES } from './src/services/api';
+
 
 import SplashScreen from './src/screens/SplashScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -41,7 +43,18 @@ import CoachDetailsScreen from './src/screens/CoachDetailsScreen';
 
 import './global.css';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+      staleTime: 5 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
+      networkMode: 'offlineFirst',
+    },
+  },
+});
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -49,7 +62,7 @@ const NAV_ITEMS: { id: string; icon: any; label: string }[] = [
   { id: 'Home', icon: Home01Icon, label: 'Home' },
   { id: 'Fixtures', icon: Calendar03Icon, label: 'Matches' },
   { id: 'Teams', icon: UserGroupIcon, label: 'Teams' },
-  { id: 'Standings', icon: ChartIcon, label: 'Standings' },
+  { id: 'Standings', icon: ChartIcon, label: 'Stand' },
   { id: 'More', icon: Menu02Icon, label: 'More' },
 ];
 
@@ -89,10 +102,10 @@ function BottomNav({ state, navigation }: { state: any; navigation: any }) {
               </Box>
               <Text
                 style={{
-                  fontSize: 11,
+                  fontSize: 14,
                   fontWeight: isActive ? '700' : '500',
                   color: isActive ? '#0D9F68' : '#5A5A6E',
-                  marginTop: 3,
+                  marginTop: 2,
                 }}
               >
                 {item.label}
@@ -358,13 +371,13 @@ function MainTabs({ selectedLeagueId, onLeagueChange }: { selectedLeagueId: stri
       tabBar={props => <BottomNav {...props} />}
       screenOptions={({ route }) => ({
         headerShown: false,
+        lazy: false,
         tabBarStyle: { padding: 0, margin: 0, backgroundColor: '#000000', borderTopWidth: 0, elevation: 0 },
       })}
     >
       <Tab.Screen name="Home">
         {() => (
           <HomeStack
-            key={selectedLeagueId}
             selectedLeagueId={selectedLeagueId}
             onLeagueChange={onLeagueChange}
           />
@@ -373,7 +386,6 @@ function MainTabs({ selectedLeagueId, onLeagueChange }: { selectedLeagueId: stri
       <Tab.Screen name="Fixtures">
         {() => (
           <FixturesStack
-            key={selectedLeagueId}
             selectedLeagueId={selectedLeagueId}
           />
         )}
@@ -381,19 +393,43 @@ function MainTabs({ selectedLeagueId, onLeagueChange }: { selectedLeagueId: stri
       <Tab.Screen name="Teams">
         {() => (
           <TeamsStack
-            key={selectedLeagueId}
             selectedLeagueId={selectedLeagueId}
           />
         )}
       </Tab.Screen>
       <Tab.Screen name="Standings">
-        {() => <StandingsStack key={selectedLeagueId} selectedLeagueId={selectedLeagueId} onLeagueChange={onLeagueChange} />}
+        {() => <StandingsStack selectedLeagueId={selectedLeagueId} onLeagueChange={onLeagueChange} />}
       </Tab.Screen>
       <Tab.Screen name="More">
-        {() => <MoreStack key={selectedLeagueId} selectedLeagueId={selectedLeagueId} onLeagueChange={onLeagueChange} />}
+        {() => <MoreStack selectedLeagueId={selectedLeagueId} onLeagueChange={onLeagueChange} />}
       </Tab.Screen>
     </Tab.Navigator>
   );
+}
+
+class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <Text style={{ color: '#0D9F68', fontSize: 18, fontWeight: '700', marginBottom: 8 }}>
+            Something went wrong
+          </Text>
+          <Text style={{ color: '#888', fontSize: 14, textAlign: 'center' }}>
+            Please close and reopen the app
+          </Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 export default function App() {
@@ -404,7 +440,7 @@ export default function App() {
     Lexend_700Bold,
     Lexend_800ExtraBold,
   });
-  const [showSplash, setShowSplash] = useState(true);
+  const [splashReady, setSplashReady] = useState(false);
   const [selectedLeagueId, setSelectedLeagueId] = useState('27');
 
   const LEGACY_LEAGUE_MAP: Record<string, string> = {
@@ -412,44 +448,121 @@ export default function App() {
     '4334': '6', '4480': '7', '4346': '18',
   };
 
+  const splashStart = useRef(Date.now());
+
   useEffect(() => {
     initNotifications();
-    getSelectedLeague().then(league => {
-      setSelectedLeagueId(LEGACY_LEAGUE_MAP[league] ?? league);
-    });
-  }, []);
+    (async () => {
+      await Promise.all([
+        hydrateSyncCache(),
+        new Promise<void>(r => setTimeout(r, 500)),
+      ]);
 
-  const content = !fontsLoaded ? (
-    <View style={{ flex: 1, backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center' }}>
-      <ActivityIndicator size="large" color="#0D9F68" />
-    </View>
-  ) : showSplash ? (
-    <QueryClientProvider client={queryClient}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
-      <SplashScreen onFinish={() => setShowSplash(false)} />
-    </QueryClientProvider>
-  ) : (
-    <GluestackUIProvider mode="dark">
-      <QueryClientProvider client={queryClient}>
-        <SafeAreaProvider>
-          <StatusBar barStyle="light-content" backgroundColor="#000000" />
-          <NavigationContainer>
-            <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }} edges={['bottom']}>
-              <MainTabs
-                selectedLeagueId={selectedLeagueId}
-                onLeagueChange={setSelectedLeagueId}
-              />
-            </SafeAreaView>
-          </NavigationContainer>
-        </SafeAreaProvider>
-      </QueryClientProvider>
-    </GluestackUIProvider>
-  );
+      const league = await getSelectedLeague();
+      const lid = LEGACY_LEAGUE_MAP[league] ?? league;
+      setSelectedLeagueId(lid);
+
+      // Pre-fetch matches, leagues, and news while skeleton is showing
+      queryClient.prefetchQuery({
+        queryKey: ['matches', lid],
+        queryFn: async () => {
+          const [live, league, next, recent] = await Promise.all([
+            fetchLiveEvents(lid),
+            fetchLeagueEvents(lid),
+            fetchNextEvents(lid),
+            fetchRecentResults(lid),
+          ]);
+          const seen = new Set<string>();
+          const merged = [...live, ...league, ...next, ...recent].filter(m => {
+            if (seen.has(m.id)) return false;
+            seen.add(m.id);
+            return true;
+          }).sort((a, b) => {
+            if (a.date < b.date) return -1;
+            if (a.date > b.date) return 1;
+            return a.time.localeCompare(b.time);
+          });
+          await setCachedMatches(lid, merged);
+          return merged;
+        },
+        staleTime: 5 * 60 * 1000,
+      });
+
+      queryClient.prefetchQuery({
+        queryKey: ['leagues'],
+        queryFn: async () => {
+          const apiLeagues = await fetchLeagues();
+          const merged: any[] = [];
+          const seen = new Set<string>();
+          for (const l of [...FEATURED_LEAGUES, ...apiLeagues]) {
+            if (!seen.has(l.id)) { seen.add(l.id); merged.push(l); }
+          }
+          await setCachedLeagues(merged);
+          return merged;
+        },
+        staleTime: 5 * 60 * 1000,
+      });
+
+      queryClient.prefetchQuery({
+        queryKey: ['news'],
+        queryFn: async () => {
+          const data = await fetchFootballNews();
+          await setCachedNews(data);
+          return data;
+        },
+        staleTime: 10 * 60 * 1000,
+      });
+
+      queryClient.prefetchQuery({
+        queryKey: ['teams', lid],
+        queryFn: async () => {
+          const data = await fetchTeamsByLeague(lid);
+          await setCachedTeams(lid, data);
+          return data;
+        },
+        staleTime: 5 * 60 * 1000,
+      });
+
+      // Show splash for at least 1.5s so logo is visible
+      const elapsed = Date.now() - splashStart.current;
+      if (elapsed < 1500) {
+        await new Promise<void>(r => setTimeout(r, 1500 - elapsed));
+      }
+
+      setSplashReady(true);
+    })();
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      {content}
+      <GluestackUIProvider mode="dark">
+        <QueryClientProvider client={queryClient}>
+          <SafeAreaProvider>
+            <StatusBar barStyle="light-content" backgroundColor="#000000" />
+            <NavigationContainer>
+              <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }} edges={['bottom']}>
+                <ErrorBoundary>
+                  <MainTabs
+                    selectedLeagueId={selectedLeagueId}
+                    onLeagueChange={setSelectedLeagueId}
+                  />
+                  {(!fontsLoaded || !splashReady) && (
+                    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000000' }}>
+                      {!fontsLoaded ? (
+                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#000000' }}>
+                          <ActivityIndicator size="large" color="#0D9F68" />
+                        </View>
+                      ) : (
+                        <SplashScreen />
+                      )}
+                    </View>
+                  )}
+                </ErrorBoundary>
+              </SafeAreaView>
+            </NavigationContainer>
+          </SafeAreaProvider>
+        </QueryClientProvider>
+      </GluestackUIProvider>
     </GestureHandlerRootView>
   );
 }
-

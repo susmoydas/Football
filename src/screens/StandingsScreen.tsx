@@ -127,7 +127,7 @@ export default function StandingsScreen({ selectedLeagueId, navigation, onNaviga
             })}
           />
         ) : rows.length === 0 ? (
-          <EmptyState title="Standings not available" description="Try another league or pull to refresh" />
+          <EmptyState title="Stand not available" description="Try another league or pull to refresh" />
         ) : (
           <StandingsTable
             rows={rows}
